@@ -2,6 +2,8 @@
 
 **My first ever coding project: a to-do list app, built from zero knowledge with the help of [Claude Code](https://claude.com/claude-code).**
 
+### 👉 [**Try it live here**](https://dudepsycho.github.io/my-first-todo-app/). It works on your phone too!
+
 Before this project I had never written a line of code. I didn't know what HTML was, what a function was, or how GitHub worked. This README is the log of how I got from nothing to a working, good-looking app, mistakes included.
 
 ![Screenshot of the to-do app](screenshot.png)
@@ -23,7 +25,9 @@ Before this project I had never written a line of code. I didn't know what HTML 
 
 ## 🚀 How to use it
 
-No installing needed. It's just three files.
+**Easiest:** open the [live version](https://dudepsycho.github.io/my-first-todo-app/) in any browser.
+
+**Or run it on your own computer.** No installing needed. It's just three files.
 
 1. Click the green **Code** button on this page, then **Download ZIP**.
 2. Unzip it.
@@ -117,6 +121,10 @@ I added a mascot drawn from simple SVG shapes (circles, ellipses and lines). Its
 ### Step 12: Putting it on GitHub 🐙
 The last step was learning what Git and GitHub are, and publishing this project so anyone can see it, including this README!
 
+Before uploading, I ran a security check for leaked passwords, keys or personal details. It found my personal email hidden inside the commit, so I switched to GitHub's private "no-reply" email first. Then I turned on **GitHub Pages**, which gives the app a free live link anyone can open, and added an **MIT license** so others can learn from and reuse the code.
+
+> **Learned:** repositories, commits, pushing, `.gitignore`, keeping my email private, GitHub Pages, and open-source licenses.
+
 ---
 
 ## 🧠 The biggest things I learned
@@ -139,6 +147,10 @@ The last step was learning what Git and GitHub are, and publishing this project 
 - HTML, CSS and JavaScript (no frameworks)
 - [Claude Code](https://claude.com/claude-code) as my coding teacher and pair programmer
 - Fonts from [Google Fonts](https://fonts.google.com/): Bricolage Grotesque, Geist, Geist Mono and Patrick Hand
+
+## 📄 License
+
+[MIT](LICENSE). You're free to use, copy, change and share this code, even in your own projects. Just keep the license note.
 
 ---
 
