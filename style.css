@@ -1,0 +1,986 @@
+/* =============================================
+   DESIGN TOKENS: every font, color and timing is named once, here
+   Aesthetic: neo-brutalism (ink outlines, hard shadows)
+   + a friendly dog-themed sketchbook (pastels, handwriting)
+   ============================================= */
+:root {
+  /* Typography */
+  --font-display: "Bricolage Grotesque", "Arial Black", sans-serif;
+  --font-body: "Geist", "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", Consolas, monospace;
+  --font-hand: "Patrick Hand", "Comic Sans MS", cursive;
+
+  /* Colors: soft pastels on paper, with ink-black lines */
+  --paper: #f7f7f5;      /* page background */
+  --card: #ffffff;       /* cards */
+  --ink: #1f1f1f;        /* outlines, shadows and headlines */
+  --dark-ink: #1f1f1f;   /* text on pastel colors (stays dark in dark mode) */
+  --text: #1f1f1f;
+  --muted: #606060;      /* grey body text */
+  --blue: #a9c8ef;
+  --mint: #a9dcb8;
+  --peach: #fbc283;
+  --lavender: #c3b1ec;
+  --pink: #f59a93;
+  --butter: #f6dc8e;
+  --dots: rgba(31, 31, 31, 0.07);   /* dotted background */
+
+  /* Shape */
+  --border: 2px solid var(--ink);
+  --radius: 22px;
+  --shadow: 6px 6px 0 var(--ink);         /* big hard shadow for cards */
+  --shadow-small: 3px 3px 0 var(--ink);   /* small hard shadow for buttons */
+
+  /* Motion */
+  --ease: cubic-bezier(0.34, 1.56, 0.64, 1);   /* a little bounce at the end */
+}
+
+/* Dark mode: same names, swapped colors (outlines turn light) */
+body.dark {
+  --paper: #131313;
+  --card: #1e1e1e;
+  --ink: #f1efe8;
+  --text: #f1efe8;
+  --muted: #a8a49c;
+  --dots: rgba(241, 239, 232, 0.06);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* =============================================
+   PAGE
+   ============================================= */
+body {
+  font-family: var(--font-body);
+  background-color: var(--paper);
+  /* a faint dotted grid, like a sketchbook */
+  background-image: radial-gradient(var(--dots) 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
+  color: var(--text);
+  margin: 0;
+  padding: 0 16px 120px;   /* extra room at the bottom for the running dog */
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* The tilted ink banner with scrolling words */
+.marquee {
+  margin: 0 -16px 48px;
+  padding: 10px 0;
+  overflow: hidden;
+  background-color: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-hand);
+  font-size: 20px;
+  white-space: nowrap;
+  transform: rotate(-1.2deg) scale(1.02);
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 28s linear infinite;
+}
+
+/* Slide left by exactly one copy of the text, then start again */
+@keyframes marquee-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Menu bar on the left, app card on the right */
+.layout {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 24px;
+  max-width: 880px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+/* The main card */
+.app {
+  min-width: 0;
+  background-color: var(--card);
+  padding: 44px 40px 40px;
+  border: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  animation: pop-in 0.7s var(--ease) both;
+  transition: background-color 0.3s;
+}
+
+/* =============================================
+   PAGE-LOAD CHOREOGRAPHY: each section of the card
+   pops up one after another (0.1s apart)
+   ============================================= */
+.app > * {
+  animation: fade-in-up 0.7s var(--ease) both;
+}
+
+.app > :nth-child(1) { animation-delay: 0.1s; }
+.app > :nth-child(2) { animation-delay: 0.2s; }
+.app > :nth-child(3) { animation-delay: 0.3s; }
+.app > :nth-child(4) { animation-delay: 0.4s; }
+.app > :nth-child(5) { animation-delay: 0.5s; }
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* =============================================
+   TITLE AREA
+   ============================================= */
+.header {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Today's date as a blue pill badge */
+.eyebrow {
+  display: inline-block;
+  margin: 0 0 18px;
+  padding: 4px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--dark-ink);
+  background-color: var(--blue);
+  border: var(--border);
+  border-radius: 999px;
+}
+
+/* The big heavy headline, letters pulled tight */
+h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 58px;
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+}
+
+/* "to do." with a hand-drawn scribble underneath */
+h1 em {
+  position: relative;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.scribble {
+  position: absolute;
+  left: -2%;
+  bottom: -12px;
+  width: 104%;
+  height: 18px;
+  overflow: visible;
+}
+
+/* The scribble "draws itself" once the page loads */
+.scribble path {
+  fill: none;
+  stroke: var(--peach);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: scribble-draw 0.9s 0.7s ease-out forwards;
+}
+
+@keyframes scribble-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* The handwritten line under the title */
+.subtitle {
+  margin: 22px 0 0;
+  font-family: var(--font-hand);
+  font-size: 20px;
+  color: var(--muted);
+}
+
+/* Every button starts plain: no border, no background */
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Round outlined moon/sun button */
+#theme-button {
+  align-self: flex-start;
+  font-size: 18px;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 50%;
+  box-shadow: var(--shadow-small);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#theme-button:hover {
+  transform: translate(-2px, -2px) rotate(15deg);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+/* =============================================
+   THE DOG 🐶
+   ============================================= */
+.dog-spot {
+  position: relative;
+  width: 120px;
+  flex-shrink: 0;
+}
+
+/* The dog button: gently bobs up and down while idle */
+.mascot {
+  display: block;
+  width: 100%;
+  padding: 0;
+  animation: bob 3s ease-in-out infinite;
+}
+
+/* After a click (or a finished task) the dog hops */
+.mascot.hop {
+  animation: hop 0.45s ease-in-out infinite;
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes hop {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  40% { transform: translateY(-16px) rotate(-4deg); }
+}
+
+/* The drawing: ink outlines, white body, pastel details */
+.dog {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  stroke: var(--ink);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dog-fill {
+  fill: var(--card);
+}
+
+.dog-patch {
+  fill: var(--peach);
+  stroke: none;
+}
+
+.dog-ear {
+  fill: var(--peach);
+}
+
+.dog-collar {
+  fill: var(--lavender);
+}
+
+.dog-tongue {
+  fill: var(--pink);
+}
+
+.dog-nose,
+.dog-eye {
+  fill: var(--ink);
+  stroke: none;
+}
+
+/* The tail wags from its base */
+.dog-tail {
+  fill: none;
+  stroke-width: 5;
+  transform-box: fill-box;
+  transform-origin: 100% 100%;
+  animation: wag 0.5s ease-in-out infinite;
+}
+
+@keyframes wag {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(18deg); }
+}
+
+/* The eye blinks every few seconds */
+.dog-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: blink 4.5s infinite;
+}
+
+@keyframes blink {
+  0%, 93%, 100% { transform: scaleY(1); }
+  95.5% { transform: scaleY(0.1); }
+}
+
+/* Legs swing from the top (only while running or hopping) */
+.dog-leg {
+  stroke-width: 7;
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+}
+
+.mascot.hop .leg-a,
+.dog-runner .leg-a {
+  animation: leg-swing 0.22s ease-in-out infinite alternate;
+}
+
+.mascot.hop .leg-b,
+.dog-runner .leg-b {
+  animation: leg-swing 0.22s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes leg-swing {
+  from { transform: rotate(-28deg); }
+  to { transform: rotate(28deg); }
+}
+
+/* The speech bubble above the dog */
+.bubble {
+  position: absolute;
+  bottom: 100%;
+  right: 6px;
+  z-index: 5;
+  width: max-content;
+  max-width: 220px;
+  margin: 0 0 8px;
+  padding: 8px 14px;
+  font-family: var(--font-hand);
+  font-size: 18px;
+  line-height: 1.2;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 16px 16px 4px 16px;
+  box-shadow: var(--shadow-small);
+  opacity: 0;
+  transform: translateY(8px) scale(0.9);
+  transform-origin: bottom right;
+  transition: opacity 0.2s, transform 0.3s var(--ease);
+  pointer-events: none;
+}
+
+.bubble.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* A dog that runs across the bottom of the screen */
+.dog-runner {
+  position: fixed;
+  bottom: 16px;
+  left: -140px;
+  z-index: 50;
+  width: 110px;
+  pointer-events: none;
+  animation: dog-run 2.6s linear forwards;
+}
+
+@keyframes dog-run {
+  0% { left: -140px; transform: translateY(0) rotate(0); }
+  15% { transform: translateY(-34px) rotate(-6deg); }
+  30% { transform: translateY(0) rotate(4deg); }
+  45% { transform: translateY(-34px) rotate(-6deg); }
+  60% { transform: translateY(0) rotate(4deg); }
+  75% { transform: translateY(-34px) rotate(-6deg); }
+  90% { transform: translateY(0) rotate(4deg); }
+  100% { left: 100%; transform: translateY(0) rotate(0); }
+}
+
+/* Paw prints that appear where you click */
+.paw-print {
+  position: fixed;
+  z-index: 60;
+  font-size: 20px;
+  pointer-events: none;
+  animation: paw-fade 0.8s ease-out forwards;
+}
+
+@keyframes paw-fade {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.6) rotate(-15deg);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -110%) scale(1.1) rotate(10deg);
+  }
+}
+
+/* =============================================
+   PRESSABLE: buttons sink into their shadow when clicked
+   ============================================= */
+#add-button:active,
+.filter-button:active,
+#theme-button:active,
+.edit-button:active,
+.delete-button:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+/* =============================================
+   ADDING A TASK
+   ============================================= */
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* The text box: a white pill with an outline and shadow */
+#task-input {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 22px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-small);
+  outline: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+/* While typing, the box lifts up a little */
+#task-input:focus {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+#task-input::placeholder {
+  color: var(--muted);
+}
+
+/* Butter-yellow pill button */
+#add-button {
+  padding: 14px 26px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--dark-ink);
+  background-color: var(--butter);
+  border: var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-small);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#add-button:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+/* Date picker and priority menu as smaller pills */
+.details-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+#date-input,
+#priority-input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+/* =============================================
+   SIDEBAR: the menu bar on the left
+   ============================================= */
+.sidebar {
+  position: sticky;   /* stays in view while you scroll */
+  top: 24px;
+  padding: 28px 16px 24px;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  animation: slide-in-left 0.7s var(--ease) both;
+  transition: background-color 0.3s;
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Small headings: MENU, PRIORITY, PROGRESS */
+.menu-title {
+  margin: 0 0 10px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 26px;
+}
+
+/* One menu option: a pill that gets an outline on hover, turns butter-yellow when chosen */
+.filter-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: left;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  transition: border-color 0.2s, background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.filter-button:hover {
+  border-color: var(--ink);
+}
+
+.filter-button.active {
+  color: var(--dark-ink);
+  background-color: var(--butter);
+  border-color: var(--ink);
+  box-shadow: var(--shadow-small);
+}
+
+/* The number on the right of each option: a little outlined badge */
+.count {
+  margin-left: auto;
+  min-width: 26px;
+  padding: 1px 7px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: center;
+  color: var(--text);
+  background-color: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+}
+
+.filter-button.active .count {
+  color: var(--dark-ink);
+  background-color: white;
+  border-color: var(--dark-ink);
+}
+
+/* Outlined pastel circles next to the priority options */
+.dot {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+
+.dot-high {
+  background-color: var(--pink);
+}
+
+.dot-medium {
+  background-color: var(--butter);
+}
+
+.dot-low {
+  background-color: var(--mint);
+}
+
+/* The progress bar: a chunky outlined pill with a striped mint fill */
+.progress {
+  height: 18px;
+  margin: 0 8px;
+  background-color: var(--paper);
+  border: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  background-color: var(--mint);
+  background-image: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(255, 255, 255, 0.45) 6px 12px);
+  transition: width 0.6s var(--ease);   /* the bar grows smoothly */
+}
+
+/* The "2 of 5 done · 40%" line under the progress bar */
+#task-counter {
+  margin: 12px 10px 0;
+  font-family: var(--font-hand);
+  font-size: 17px;
+  color: var(--muted);
+}
+
+/* =============================================
+   SECTIONS: "To do" and "Done"
+   ============================================= */
+.task-section {
+  margin-top: 40px;
+}
+
+/* Section titles: heavy font with an outlined pastel circle in front */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: -0.03em;
+}
+
+.section-title::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: var(--border);
+  border-radius: 50%;
+  background-color: var(--butter);
+}
+
+#done-section .section-title::before {
+  background-color: var(--mint);
+}
+
+/* The "(3)" next to a section title */
+.section-count {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+/* =============================================
+   THE TASK CARDS
+   ============================================= */
+.task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  counter-reset: task;   /* start counting tasks from zero */
+}
+
+/* When a list is empty, show its handwritten message (from data-empty) in a dashed box */
+.task-list:empty::before {
+  content: attr(data-empty);
+  display: block;
+  padding: 16px;
+  font-family: var(--font-hand);
+  font-size: 19px;
+  text-align: center;
+  color: var(--muted);
+  border: 2px dashed var(--muted);
+  border-radius: 16px;
+}
+
+/* One task: a little card. Its shadow color shows the priority (--pc) */
+.task-list li {
+  --pc: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px 14px 16px;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 16px;
+  box-shadow: 5px 5px 0 var(--pc);
+  counter-increment: task;   /* add 1 to the count for each task */
+  transition: transform 0.2s, box-shadow 0.2s;
+  animation: task-in 0.45s var(--ease);
+}
+
+/* Lift the card a little when the mouse is over it */
+.task-list li:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0 var(--pc);
+}
+
+/* Priority colors for the shadow */
+.task-list li.priority-high {
+  --pc: var(--pink);
+}
+
+.task-list li.priority-medium {
+  --pc: var(--butter);
+}
+
+.task-list li.priority-low {
+  --pc: var(--mint);
+}
+
+/* 01, 02, 03... in front of each task */
+.task-list li::before {
+  content: counter(task, decimal-leading-zero);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* New or moved tasks pop in */
+@keyframes task-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* The task text fills the free space */
+.task-list li span {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+/* A finished task */
+.done {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+/* Finished task cards are a little quieter */
+#done-list li {
+  background-color: var(--paper);
+}
+
+/* A round outlined checkbox we draw ourselves */
+.task-list input[type="checkbox"] {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  flex-shrink: 0;
+  display: grid;
+  place-content: center;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s var(--ease);
+}
+
+.task-list input[type="checkbox"]:hover {
+  background-color: var(--butter);
+  transform: scale(1.1);
+}
+
+.task-list input[type="checkbox"]:checked {
+  background-color: var(--mint);
+}
+
+/* The tick inside a checked circle */
+.task-list input[type="checkbox"]:checked::after {
+  content: "✓";
+  color: var(--dark-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* The due date: a small outlined pill (only when there is a date) */
+.due-date:not(:empty) {
+  padding: 3px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+  background-color: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+}
+
+/* Overdue: pink pill */
+.due-date.overdue {
+  color: var(--dark-ink);
+  background-color: var(--pink);
+}
+
+/* The ✎ and 🗑 buttons: small outlined circles */
+.edit-button,
+.delete-button {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  font-size: 14px;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 50%;
+  transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.edit-button:hover {
+  background-color: var(--blue);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-small);
+}
+
+.delete-button:hover {
+  background-color: var(--pink);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-small);
+}
+
+/* The boxes that appear while editing a task */
+.edit-text {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 14px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 999px;
+  outline: none;
+}
+
+.edit-date {
+  padding: 5px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 999px;
+}
+
+/* =============================================
+   SMALL SCREENS: the menu moves above the card
+   ============================================= */
+@media (max-width: 760px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    padding: 22px 16px 20px;
+  }
+
+  /* Menu options sit side by side and wrap onto new lines */
+  .menu {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .filter-button {
+    width: auto;
+    border-color: var(--ink);
+  }
+}
+
+/* PHONES: smaller sizes on narrow screens */
+@media (max-width: 480px) {
+  .app {
+    padding: 30px 20px 28px;
+  }
+
+  h1 {
+    font-size: 44px;
+  }
+
+  .header {
+    flex-wrap: wrap;
+  }
+
+  .dog-spot {
+    width: 96px;
+  }
+
+  .input-row {
+    flex-wrap: wrap;
+  }
+
+  #add-button {
+    width: 100%;
+  }
+}
+
+/* People who turn off animations in their system settings get none */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .scribble path {
+    stroke-dashoffset: 0;
+  }
+}

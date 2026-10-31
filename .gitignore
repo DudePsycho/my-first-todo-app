@@ -1,0 +1,7 @@
+# Claude Code settings and third-party skills (kept on my computer only)
+.claude/
+
+# Windows and Mac system files
+Thumbs.db
+desktop.ini
+.DS_Store
