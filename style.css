@@ -922,8 +922,9 @@ button {
    SMALL SCREENS: the menu moves above the card
    ============================================= */
 @media (max-width: 760px) {
+  /* minmax(0, 1fr): the column may never grow wider than the screen */
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .sidebar {
@@ -931,43 +932,177 @@ button {
     padding: 22px 16px 20px;
   }
 
-  /* Menu options sit side by side and wrap onto new lines */
+  /* Menu options sit in one row you can swipe sideways */
   .menu {
     flex-direction: row;
-    flex-wrap: wrap;
-    margin-bottom: 18px;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    margin: 0 -16px 16px;
+    padding: 2px 16px 8px;   /* room for the hard shadow */
+    scrollbar-width: none;   /* hide the scrollbar (Firefox) */
+  }
+
+  .menu::-webkit-scrollbar {
+    display: none;           /* hide the scrollbar (Chrome, Safari) */
   }
 
   .filter-button {
     width: auto;
+    flex-shrink: 0;
     border-color: var(--ink);
   }
 }
 
-/* PHONES: smaller sizes on narrow screens */
+/* =============================================
+   PHONES: a layout made for narrow screens
+   ============================================= */
 @media (max-width: 480px) {
+  body {
+    padding: 0 12px 120px;
+  }
+
+  .marquee {
+    margin: 0 -12px 32px;
+    font-size: 17px;
+  }
+
+  .layout {
+    gap: 18px;
+  }
+
+  .app,
+  .sidebar {
+    border-radius: 18px;
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+
   .app {
-    padding: 30px 20px 28px;
+    padding: 26px 18px;
+  }
+
+  .sidebar {
+    padding: 20px 16px 18px;
+  }
+
+  /* The header becomes a small grid:
+     [date badge]  [moon]
+     [title]       [dog]
+     [subtitle..........] */
+  .header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "eyebrow theme"
+      "title   dog"
+      "sub     sub";
+    align-items: center;
+    column-gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .header-text {
+    display: contents;   /* its children join the grid directly */
+  }
+
+  .eyebrow {
+    grid-area: eyebrow;
+    justify-self: start;
+    margin-bottom: 14px;
+    white-space: nowrap;   /* keep the date on one line */
   }
 
   h1 {
-    font-size: 44px;
+    grid-area: title;
+    font-size: 46px;
   }
 
-  .header {
-    flex-wrap: wrap;
+  .subtitle {
+    grid-area: sub;
+    margin-top: 18px;
+    font-size: 18px;
   }
 
   .dog-spot {
-    width: 96px;
+    grid-area: dog;
+    width: 92px;
   }
 
+  #theme-button {
+    grid-area: theme;
+    justify-self: end;
+    align-self: start;
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  /* Text box on top, full-width Add button below */
   .input-row {
     flex-wrap: wrap;
   }
 
+  #task-input {
+    flex-basis: 100%;
+  }
+
   #add-button {
     width: 100%;
+    padding: 12px;
+  }
+
+  /* Date and priority stacked, full width.
+     16px text stops iPhones from zooming in when you tap them */
+  .details-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  #date-input,
+  #priority-input,
+  .edit-text,
+  .edit-date {
+    font-size: 16px;
+  }
+
+  #date-input,
+  #priority-input {
+    flex: none;
+    width: 100%;
+    padding: 10px 16px;
+  }
+
+  .task-section {
+    margin-top: 32px;
+  }
+
+  .section-title {
+    font-size: 24px;
+  }
+
+  /* Task cards use two rows:
+     row 1: number, checkbox, task text (gets the full width)
+     row 2: due date on the left, ✎ and 🗑 on the right */
+  .task-list li {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 12px;
+  }
+
+  .task-list li span,
+  .edit-text {
+    flex: 1 1 calc(100% - 70px);
+  }
+
+  /* Line the date up under the task text (number + checkbox + gaps = 60px) */
+  .due-date:not(:empty),
+  .edit-date {
+    margin-left: 60px;
+  }
+
+  /* Push the ✎ and 🗑 buttons to the right */
+  .edit-button {
+    margin-left: auto;
   }
 }
 

@@ -12,7 +12,12 @@ function showDueDate(dateLabel, dueDate) {
   dateLabel.classList.remove("overdue");
 
   if (dueDate) {
-    dateLabel.textContent = "Due " + dueDate;
+    // Write the date in a short, friendly way, e.g. "Due 3 Nov"
+    const niceDate = new Date(dueDate + "T00:00").toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short"
+    });
+    dateLabel.textContent = "Due " + niceDate;
 
     // If the due date has already passed, mark it as overdue
     const today = new Date().toLocaleDateString("en-CA");
