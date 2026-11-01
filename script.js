@@ -9,6 +9,8 @@ const taskList = document.getElementById("task-list");   // the "To do" list
 const doneList = document.getElementById("done-list");   // the "Done" list
 const dateInput = document.getElementById("date-input");
 const priorityInput = document.getElementById("priority-input");
+const layout = document.querySelector(".layout");
+const phoneScreen = window.matchMedia("(max-width: 760px)");   // true on phone-sized screens
 
 // LINE ICONS: small drawings on a 24×24 grid, used instead of emoji
 // so they look the same on every phone and computer.
@@ -23,6 +25,9 @@ const ICONS = {
   next: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
   hourglass: '<path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>',
   moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  circle: '<circle cx="12" cy="12" r="10"/>',
+  "circle-check": '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
   hash: '<line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="16" x2="14" y1="3" y2="21"/>',
   at: '<circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/>',
@@ -76,8 +81,9 @@ const LIST_NAMES = {
 };
 
 // A pattern that finds tags in task text: @home (a context) or #garden (a project).
-// A tag starts with @ or #, comes after a space (or at the start), and is made of letters, numbers, - or _
-const TAG_PATTERN = /(?<=^|\s)([@#][\p{L}\p{N}_-]+)/gu;
+// A tag starts with @ or #, is not glued to a word before it (so an email like a@b.com is no tag),
+// and is made of letters, numbers, - or _. (\B means "not right after a letter")
+const TAG_PATTERN = /\B([@#][\p{L}\p{N}_-]+)/gu;
 
 // A function that finds all tags of one kind ("@" or "#") in a text, in small letters
 function findTags(text, symbol) {
@@ -544,6 +550,11 @@ function chooseFilter(button) {
 
   // And show or hide the tasks
   applyFilter();
+
+  // On a phone, the open menu covers the tasks: close it so you can see what you picked
+  if (phoneScreen.matches) {
+    setMenuOpen(false);
+  }
 }
 
 // Every filter button that is already on the page runs chooseFilter when clicked
@@ -575,9 +586,23 @@ function buildTagMenu(symbol, menu) {
     button.className = "filter-button";
     button.dataset.filter = tag;
 
-    // A # or @ icon, then the name without its symbol: "#garden" shows as [#] garden
+    button.title = tag;
+
+    // A # or @ icon, then the name without its symbol: "#garden" shows as [#] garden.
+    // The icons-only menu shows just the first 2 letters instead: [#] ga
     button.appendChild(makeIcon(symbol === "#" ? "hash" : "at"));
-    button.appendChild(document.createTextNode(tag.slice(1) + " "));
+
+    const label = document.createElement("span");
+    label.className = "label";
+    label.textContent = tag.slice(1);
+    button.appendChild(label);
+
+    const short = document.createElement("span");
+    short.className = "short";
+    short.textContent = tag.slice(1, 3);
+    button.appendChild(short);
+
+    button.appendChild(document.createTextNode(" "));
 
     const count = document.createElement("span");
     count.className = "count";
@@ -935,6 +960,49 @@ document.getElementById("coach-dog").appendChild(coachDog);
 const brandDog = dogDrawing.cloneNode(true);
 brandDog.removeAttribute("id");
 document.getElementById("brand-dog").appendChild(brandDog);
+
+// The brand dog gets a bone (two copies of the same shape: an ink outline, then the paper fill)
+const BONE_SHAPE = '<rect x="96" y="46" width="30" height="7" rx="3.5"/><circle cx="96" cy="45.5" r="4"/><circle cx="96" cy="53.5" r="4"/><circle cx="126" cy="45.5" r="4"/><circle cx="126" cy="53.5" r="4"/>';
+const bone = document.createElementNS("http://www.w3.org/2000/svg", "g");
+bone.setAttribute("class", "bone");
+bone.innerHTML = '<g class="bone-outline">' + BONE_SHAPE + '</g><g class="bone-fill">' + BONE_SHAPE + "</g>";
+brandDog.appendChild(bone);
+
+// ---------- THE MENU SWITCH 🦴 ----------
+// Bone in the dog's mouth = menu open. Bone dropped = menu shrunk to icons only
+const menuToggle = document.getElementById("menu-toggle");
+
+// A function that opens (true) or shrinks (false) the menu
+function setMenuOpen(isOpen) {
+  layout.classList.toggle("is-collapsed", !isOpen);
+  menuToggle.setAttribute("aria-expanded", isOpen);
+  menuToggle.title = isOpen ? "Hide the menu" : "Show the menu";
+
+  // Remember the choice on bigger screens (phones always start with the menu shrunk)
+  if (!phoneScreen.matches) {
+    localStorage.setItem("menuOpen", isOpen);
+  }
+}
+
+// Clicking the dog switches the menu
+menuToggle.addEventListener("click", function () {
+  setMenuOpen(layout.classList.contains("is-collapsed"));
+});
+
+// On a phone, tapping the dimmed page beside the open menu closes it
+document.getElementById("scrim").addEventListener("click", function () {
+  setMenuOpen(false);
+});
+
+// Tapping the search button in the icons-only menu opens the menu, so you can type
+searchInput.addEventListener("focus", function () {
+  if (layout.classList.contains("is-collapsed")) {
+    setMenuOpen(true);
+  }
+});
+
+// When the page opens: shrunk on phones, otherwise the way you left it (open the first time)
+setMenuOpen(!phoneScreen.matches && localStorage.getItem("menuOpen") !== "false");
 
 // A function that closes the coach (the Esc key also closes it, by itself)
 function closeCoach() {

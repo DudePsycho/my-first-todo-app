@@ -1,6 +1,6 @@
 # 🐶 Things to do
 
-**Version 0.1** · My first ever coding project: a to-do list app, built from zero knowledge with the help of [Claude Code](https://claude.com/claude-code).
+**Version 0.2** · My first ever coding project: a to-do list app, built from zero knowledge with the help of [Claude Code](https://claude.com/claude-code).
 
 ### 👉 [**Try it live here**](https://dudepsycho.github.io/my-first-todo-app/). It works on your phone too!
 
@@ -29,7 +29,8 @@ Before this project I had never written a line of code. I didn't know what HTML 
 - 📊 A **progress bar** that fills up as you finish tasks
 - 💾 **Remembers everything** in your browser, plus **Download** and **Restore** for a backup file, so your tasks are safe even if the browser data gets cleared
 - 🌙 **Dark mode**, which is remembered too
-- 📱 **Works on phones**
+- 🦴 **A menu you can shrink:** tap the little dog. Bone in its mouth = full menu, bone dropped = icons only
+- 📱 **Made for phones too:** on a phone the menu becomes a slim strip of icons and slides open over the page
 
 It's based on the **Getting Things Done** idea (GTD): get everything out of your head, decide the next step for each thing, put it in the right list, and look over your lists once a week. The dog is kind about it: it cheers when you finish things and never nags.
 
@@ -145,9 +146,16 @@ A big polish pass:
 
 > **Learned:** design tokens, `transform` for smooth animations, accessibility basics, and that deleting code can be the best improvement.
 
+### Step 17: A menu that fits in your pocket 🦴
+The little dog at the top of the menu became its switch: with the bone in its mouth the menu is open, and when it drops the bone the menu shrinks to a strip of icons (even for filters and tags). On phones the strip is always there, and the full menu slides in over the page. I also tested it the way phones really behave: iPhones zoom into small text boxes, and the browser toolbar can hide the bottom of the screen.
+
+> **Learned:** `@media` queries for different screen sizes, `100dvh` (the part of the screen you can actually see), and that a phone is not just a small computer.
+
 ---
 
 ## 🏷️ Version history
+
+**v0.2** (1 November 2026): the dog-and-bone menu that shrinks to icons, a phone layout with a slide-in menu, and fixes so it works on older iPhones too.
 
 **v0.1** (1 November 2026): the first named version. Everything above: tasks with dates and priorities, GTD lists, Today, tags, search, the dog coach, backup and restore, dark mode, and a layout that works on desktop and phone.
 
@@ -179,4 +187,4 @@ A big polish pass:
 
 ---
 
-*Started 31 October 2026 · Version 0.1 on 1 November 2026 · Made with patience, a lot of questions, and one very good dog.* 🐾
+*Started 31 October 2026 · Version 0.2 on 1 November 2026 · Made with patience, a lot of questions, and one very good dog.* 🐾

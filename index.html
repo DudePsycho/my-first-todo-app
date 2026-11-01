@@ -19,12 +19,14 @@
 
     <!-- SIDEBAR: brand on top, then filters, then actions (dog coach, backup) at the bottom.
          Every <span data-icon="..."> is swapped for a line icon by script.js -->
-    <aside class="sidebar">
-      <!-- BRAND: a tiny copy of the dog (added by script.js) and the app's name -->
-      <div class="brand">
+    <aside class="sidebar" id="sidebar">
+      <!-- BRAND: a tiny copy of the dog (added by script.js) and the app's name.
+           It is also the menu switch: bone in the dog's mouth = menu open,
+           bone dropped on the floor = menu shrunk to icons only -->
+      <button class="brand" id="menu-toggle" aria-controls="sidebar" aria-expanded="true">
         <span class="brand-dog" id="brand-dog"></span>
         <span class="brand-name">My To-Do List</span>
-      </div>
+      </button>
 
       <!-- SEARCH: type a word and only the matching tasks stay visible -->
       <div class="search">
@@ -32,27 +34,28 @@
         <input type="search" id="search-input" placeholder="Search" aria-label="Search tasks">
       </div>
 
-      <!-- LISTS (the GTD way): every unfinished task lives in one of these -->
+      <!-- LISTS (the GTD way): every unfinished task lives in one of these.
+           The words sit in <span class="label">, so the icons-only menu can hide them -->
       <p class="menu-title">Lists</p>
       <nav class="menu">
-        <button class="filter-button" data-filter="focus"><span data-icon="star"></span>Today <span class="count" id="count-focus">0</span></button>
-        <button class="filter-button" data-filter="inbox"><span data-icon="inbox"></span>Inbox <span class="count" id="count-inbox">0</span></button>
-        <button class="filter-button" data-filter="next"><span data-icon="next"></span>Next <span class="count" id="count-next">0</span></button>
-        <button class="filter-button" data-filter="waiting"><span data-icon="hourglass"></span>Waiting for <span class="count" id="count-waiting">0</span></button>
-        <button class="filter-button" data-filter="someday"><span data-icon="moon"></span>Someday <span class="count" id="count-someday">0</span></button>
+        <button class="filter-button active" data-filter="all" title="All tasks"><span data-icon="layers"></span><span class="label">All tasks</span> <span class="count" id="count-all">0</span></button>
+        <button class="filter-button" data-filter="focus" title="Today"><span data-icon="star"></span><span class="label">Today</span> <span class="count" id="count-focus">0</span></button>
+        <button class="filter-button" data-filter="inbox" title="Inbox"><span data-icon="inbox"></span><span class="label">Inbox</span> <span class="count" id="count-inbox">0</span></button>
+        <button class="filter-button" data-filter="next" title="Next"><span data-icon="next"></span><span class="label">Next</span> <span class="count" id="count-next">0</span></button>
+        <button class="filter-button" data-filter="waiting" title="Waiting for"><span data-icon="hourglass"></span><span class="label">Waiting for</span> <span class="count" id="count-waiting">0</span></button>
+        <button class="filter-button" data-filter="someday" title="Someday"><span data-icon="moon"></span><span class="label">Someday</span> <span class="count" id="count-someday">0</span></button>
       </nav>
 
-      <!-- FILTER: two rows of side-by-side buttons (what to show, and which priority) -->
+      <!-- FILTER: two rows of side-by-side buttons (unfinished or done, and which priority) -->
       <p class="menu-title">Filter</p>
       <nav class="menu segmented" aria-label="Show">
-        <button class="filter-button active" data-filter="all">All <span class="count" id="count-all">0</span></button>
-        <button class="filter-button" data-filter="active">Active <span class="count" id="count-active">0</span></button>
-        <button class="filter-button" data-filter="done">Done <span class="count" id="count-done">0</span></button>
+        <button class="filter-button" data-filter="active" title="Active (not done yet)"><span data-icon="circle"></span><span class="label">Active</span> <span class="count" id="count-active">0</span></button>
+        <button class="filter-button" data-filter="done" title="Done"><span data-icon="circle-check"></span><span class="label">Done</span> <span class="count" id="count-done">0</span></button>
       </nav>
       <nav class="menu segmented" aria-label="Priority">
-        <button class="filter-button" data-filter="high" title="High priority"><span class="priority-key key-high"></span>High <span class="count" id="count-high">0</span></button>
-        <button class="filter-button" data-filter="medium" title="Medium priority"><span class="priority-key key-medium"></span>Medium <span class="count" id="count-medium">0</span></button>
-        <button class="filter-button" data-filter="low" title="Low priority"><span class="priority-key key-low"></span>Low <span class="count" id="count-low">0</span></button>
+        <button class="filter-button" data-filter="high" title="High priority"><span class="priority-key key-high"></span><span class="label">High</span> <span class="count" id="count-high">0</span></button>
+        <button class="filter-button" data-filter="medium" title="Medium priority"><span class="priority-key key-medium"></span><span class="label">Medium</span> <span class="count" id="count-medium">0</span></button>
+        <button class="filter-button" data-filter="low" title="Low priority"><span class="priority-key key-low"></span><span class="label">Low</span> <span class="count" id="count-low">0</span></button>
       </nav>
 
       <!-- TAGS: small chips for projects (#garden) and contexts (@home), built by script.js
@@ -76,21 +79,24 @@
         <!-- DOG COACH: the dog helps you sort your inbox and review your week -->
         <p class="menu-title">Dog coach</p>
         <div class="tool-buttons">
-          <button class="tool-button" id="sort-button" title="Sort my inbox with the dog"><span data-icon="list-checks"></span>Sort inbox</button>
-          <button class="tool-button" id="review-button" title="Weekly review with the dog"><span data-icon="calendar-check"></span>Weekly review</button>
+          <button class="tool-button" id="sort-button" title="Sort my inbox with the dog"><span data-icon="list-checks"></span><span class="label">Sort inbox</span></button>
+          <button class="tool-button" id="review-button" title="Weekly review with the dog"><span data-icon="calendar-check"></span><span class="label">Weekly review</span></button>
         </div>
 
         <!-- BACKUP: save your tasks to a file, or bring them back from one -->
         <p class="menu-title">Backup</p>
         <div class="tool-buttons">
-          <button class="tool-button" id="download-button" title="Download my tasks as a backup file"><span data-icon="download"></span>Download</button>
-          <button class="tool-button" id="restore-button" title="Restore tasks from a backup file"><span data-icon="upload"></span>Restore</button>
+          <button class="tool-button" id="download-button" title="Download my tasks as a backup file"><span data-icon="download"></span><span class="label">Download</span></button>
+          <button class="tool-button" id="restore-button" title="Restore tasks from a backup file"><span data-icon="upload"></span><span class="label">Restore</span></button>
         </div>
 
         <!-- A hidden file picker. The Restore button opens it for us -->
         <input type="file" id="restore-input" accept=".json,application/json" hidden>
       </div>
     </aside>
+
+    <!-- On phones, the open menu slides over the page; tapping this dimmed area closes it -->
+    <div class="scrim" id="scrim"></div>
 
     <!-- MAIN AREA: everything to the right of the sidebar -->
     <div class="main-area">

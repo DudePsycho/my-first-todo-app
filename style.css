@@ -247,6 +247,7 @@ h1 em {
 
 /* Every button starts plain: no border, no background */
 button {
+  -webkit-tap-highlight-color: transparent;   /* no grey flash when tapped on phones */
   font-family: inherit;
   font-size: inherit;
   border: none;
@@ -608,6 +609,7 @@ button:disabled {
   position: sticky;   /* stays in place while the tasks scroll */
   top: 0;
   height: 100vh;
+  height: 100dvh;     /* phones: only the part you can see, not behind the browser's toolbar */
   overflow-y: auto;   /* scrolls inside itself if the window is short */
   display: flex;
   flex-direction: column;   /* lets the footer sit at the very bottom */
@@ -619,16 +621,25 @@ button:disabled {
 }
 
 /* BRAND: a tiny dog and the app's name, at the top of the sidebar */
+/* It is also the button that opens and closes the menu */
 .brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 32px;
-  margin: 0 0 8px 4px;
+  width: 100%;
+  height: 36px;
+  margin: 0 0 8px;
+  padding: 0 4px;
+  border-radius: 10px;
+  transition: background-color var(--fast) var(--ease);
+}
+
+.brand:hover {
+  background-color: var(--paper);
 }
 
 .brand-dog {
-  width: 36px;
+  width: 44px;
   flex-shrink: 0;
 }
 
@@ -641,6 +652,134 @@ button:disabled {
 .brand-name {
   font-size: 16px;
   font-weight: 600;
+}
+
+/* THE BONE (only the brand dog has one): in its mouth while the menu is open... */
+.bone {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 350ms var(--ease);
+}
+
+/* The bone is drawn twice: a thick ink copy underneath makes the outline, the paper copy on top fills it */
+.bone-outline {
+  fill: var(--ink);
+  stroke: var(--ink);
+  stroke-width: 6;
+}
+
+.bone-fill {
+  fill: var(--card);
+  stroke: none;
+}
+
+/* ...and dropped on the floor in front of its paws when the menu is shrunk */
+.is-collapsed .bone {
+  transform: translate(-10px, 40px) rotate(-14deg);
+}
+
+/* The scrim: dims the page behind the open menu on phones (hidden everywhere else) */
+.scrim {
+  display: none;
+}
+
+/* =============================================
+   ICONS-ONLY MENU: the sidebar shrinks to a slim strip of icons
+   (script.js adds "is-collapsed" to .layout when the dog drops the bone)
+   ============================================= */
+.layout.is-collapsed {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.is-collapsed .sidebar {
+  padding: 8px;
+}
+
+.is-collapsed .brand {
+  justify-content: center;
+  padding: 0;
+}
+
+/* Hide every word: names, headings, counts, and the progress line */
+.is-collapsed .brand-name,
+.is-collapsed .menu-title,
+.is-collapsed .label,
+.is-collapsed .count,
+.is-collapsed .progress-row {
+  display: none;
+}
+
+/* A tag's first two letters ("ga" for #garden) only show in the icons-only menu */
+.short {
+  display: none;
+}
+
+.is-collapsed .short {
+  display: inline;
+  font-size: 11px;
+}
+
+/* Filter buttons and tag chips stack into one column, like the lists */
+.is-collapsed .segmented,
+.is-collapsed .tag-chips {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.is-collapsed .segmented .filter-button,
+.is-collapsed .chips .filter-button {
+  flex: none;
+  width: 100%;
+  gap: 2px;
+}
+
+/* A faint line between the groups: lists, filters, tags, tools */
+.is-collapsed .segmented[aria-label="Show"],
+.is-collapsed .tag-chips,
+.is-collapsed .sidebar-footer {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1.5px solid var(--line);
+}
+
+.is-collapsed .segmented + .segmented {
+  margin-top: 2px;
+}
+
+/* The search box becomes a square search button (tapping it opens the menu) */
+.is-collapsed #search-input {
+  padding: 0;
+  color: transparent;
+  cursor: pointer;
+}
+
+.is-collapsed #search-input::placeholder {
+  color: transparent;
+}
+
+/* Icons sit in the middle of each square button */
+.is-collapsed .filter-button,
+.is-collapsed .tool-button {
+  justify-content: center;
+  height: 36px;
+  padding: 0;
+}
+
+.is-collapsed .menu {
+  margin-top: 8px;
+}
+
+.is-collapsed .tool-buttons {
+  flex-direction: column;
+}
+
+.is-collapsed .tool-buttons + .tool-buttons {
+  margin-top: 4px;
+}
+
+.is-collapsed .tool-button .icon {
+  width: 16px;
+  height: 16px;
 }
 
 /* SEARCH: an outlined box with a search icon inside on the left */
@@ -681,7 +820,7 @@ button:disabled {
 
 /* Small headings: Lists, Filter, Tags... (sentence case, close to their own group) */
 .menu-title {
-  margin: 12px 0 4px 8px;
+  margin: 8px 0 4px 8px;
   font-size: 12px;
   line-height: 16px;
   font-weight: 500;
@@ -1380,51 +1519,56 @@ button:disabled {
 }
 
 /* =============================================
-   SMALL SCREENS: the menu moves above the card
+   SMALL SCREENS: the menu is a slim strip of icons on the left.
+   Tapping the dog slides the full menu OVER the page (the tasks don't move)
    ============================================= */
 @media (max-width: 760px) {
-  /* minmax(0, 1fr): the column may never grow wider than the screen */
-  .layout {
-    grid-template-columns: minmax(0, 1fr);
+  /* The strip's column is always 56px wide, open or not */
+  .layout,
+  .layout.is-collapsed {
+    grid-template-columns: 56px minmax(0, 1fr);
   }
 
-  /* The sidebar sits on top of the tasks, with an ink line under it */
-  .sidebar {
-    position: static;
-    height: auto;
-    overflow: visible;
-    border-right: none;
-    border-bottom: var(--border);
+  .is-collapsed .sidebar {
+    padding: 8px 6px;
   }
 
-  /* Menu options sit in one row you can swipe sideways */
-  .menu {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    gap: 8px;
-    overflow-x: auto;
-    margin: 0 -12px;
-    padding: 0 12px 8px;     /* room for the hard shadow */
-    scrollbar-width: none;   /* hide the scrollbar (Firefox) */
+  .is-collapsed .brand-dog {
+    width: 40px;
   }
 
-  .menu::-webkit-scrollbar {
-    display: none;           /* hide the scrollbar (Chrome, Safari) */
+  /* The open menu floats over the page, sliding in from the left */
+  .layout:not(.is-collapsed) .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 40;
+    width: 264px;
+    height: 100%;
+    box-shadow: var(--shadow);
+    animation: menu-in 250ms var(--ease);
   }
 
-  .filter-button {
-    width: auto;
-    flex-shrink: 0;
-    border-color: var(--ink);
+  /* The dimmed page behind it: tap it to close the menu */
+  .layout:not(.is-collapsed) .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background-color: var(--backdrop);
   }
 
-  .filter-button .count {
-    margin-left: 4px;
+  .app {
+    padding: 24px 16px 128px;
   }
+}
 
-  /* Tool buttons stack if the screen is too narrow */
-  .tool-buttons {
-    flex-wrap: wrap;
+@keyframes menu-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
   }
 }
 
@@ -1432,10 +1576,6 @@ button:disabled {
    PHONES: a layout made for narrow screens
    ============================================= */
 @media (max-width: 480px) {
-  .app {
-    padding: 24px 16px 128px;
-  }
-
   /* The header becomes a small grid:
      [date]        [moon]
      [title]       [dog]
@@ -1463,7 +1603,7 @@ button:disabled {
 
   h1 {
     grid-area: title;
-    font-size: 36px;
+    font-size: 32px;
   }
 
   .subtitle {
@@ -1474,7 +1614,7 @@ button:disabled {
 
   .dog-spot {
     grid-area: dog;
-    width: 88px;
+    width: 72px;
   }
 
   #theme-button {
@@ -1531,6 +1671,25 @@ button:disabled {
   .task-list li .task-text,
   .edit-text {
     flex: 1 1 calc(100% - 80px);
+  }
+
+  /* Row 2 is narrow next to the icon menu: slimmer list picker and date tag */
+  .status-select {
+    padding: 0 6px;
+    font-size: 11px;
+  }
+
+  /* iPhones only (only they understand this line): they zoom in when you tap
+     text smaller than 16px, so the list picker keeps 16px there */
+  @supports (-webkit-touch-callout: none) {
+    .status-select {
+      font-size: 16px;
+    }
+  }
+
+  .due-date:not(:empty) {
+    padding: 2px 6px;
+    font-size: 11px;
   }
 
   /* Finished tasks have no star or list picker, so edit and delete share row 1 */
