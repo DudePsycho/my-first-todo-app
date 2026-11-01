@@ -1,8 +1,10 @@
 # 🐶 Things to do
 
-**Version 0.5** · My first ever coding project: a to-do list app, built from zero knowledge with the help of [Claude Code](https://claude.com/claude-code). First in plain HTML, CSS and JavaScript, and now rebuilt in **React**.
+**Version 0.6** · My first ever coding project: a to-do list app, built from zero knowledge with the help of [Claude Code](https://claude.com/claude-code). First in plain HTML, CSS and JavaScript, and now rebuilt in **React**.
 
 ### 👉 [**Try it live here**](https://dudepsycho.github.io/my-first-todo-app/). It works on your phone too!
+
+🗺️ **Where it's going:** [the roadmap](https://dudepsycho.github.io/my-first-todo-app/roadmap/), a trail of stops from today to version 10.
 
 Before this project I had never written a line of code. I didn't know what HTML was, what a function was, or how GitHub worked. This README is the log of how I got from nothing to a working app that helps you get things done, with a dog that helps you along.
 
@@ -19,10 +21,15 @@ Before this project I had never written a line of code. I didn't know what HTML 
 - 🏷️ **Tags:** type `#garden` for a project or `@home` for a context, and they become chips you can filter by. Every tag gets its own color, and keeps it
 - 📅 **Due dates** (overdue tasks turn pink) and **priorities** (High / Medium / Low, shown as the color of each card's edge)
 - 🔍 **Search** that filters while you type
+- ⚡ **Smart Quick Add:** type `Call mum friday !high weekly` and the date, priority and repeat fill in by themselves. Start a day word like `fri` and press **Tab** (or tap the suggestion on a phone) to finish it
+- 🗓️ **Overdue, Due today and Upcoming views** in the menu, earliest date first
+- 🔁 **Repeating tasks:** daily, weekly or monthly. Tick one and a fresh copy appears with the next date
+- ↩️ **Undo after delete:** a bar slides up for 10 seconds, and the task comes back exactly where it was
 
 **The dog** 🐶
 - **Pet it for a real tip** about your tasks: what's overdue, what's due today, how many are waiting in your inbox
 - It tells you what just happened: "Added to Inbox. 3 tasks to sort", "Done. 4 tasks left"
+- A second dog, a **Lhasa Apso**, sits under the Add button. Tap it to learn one trick at a time, and while you type it tells you what it understood ("Due Fri 6 Nov · High priority")
 - The strip at the top shows playful dog commands that double as tips ("fetch the next task", "sit. stay. focus."), in a new order every visit
 
 **The dog coach**
@@ -62,6 +69,7 @@ The same app, built two ways:
 | `react/` | **The React version (the current one).** All new work happens here |
 | `app/` | The React version packed into plain files by `npm run build`. This is what the live site shows |
 | `html/` | **The first, plain version** (up to v0.2): HTML, CSS and JavaScript, no frameworks. It's finished, and kept as it was |
+| `roadmap/` | The roadmap page: where the app is going |
 | `index.html` | A tiny page that sends the live link on to `app/` |
 
 **The React version (`react/`)** splits the app into small pieces called components:
@@ -73,8 +81,8 @@ The same app, built two ways:
 | `TaskItem.jsx` | One task card |
 | `Sidebar.jsx` | The menu |
 | `Coach.jsx` | The dog coach |
-| `Dog.jsx`, `Icon.jsx` | The dog drawing and the line icons |
-| `tasks.js` | Small helpers: finding tags, picking tag colors, checking tasks |
+| `Dog.jsx`, `Lhasa.jsx`, `Icon.jsx` | The two dog drawings and the line icons |
+| `tasks.js` | Small helpers: finding tags, picking tag colors, checking tasks, reading Quick Add words, working out the next date of a repeating task |
 | `style.css` | How it looks |
 
 **The plain version (`html/`)** is three files:
@@ -192,9 +200,26 @@ I noticed the dog only said things like "good human", which nobody needs to hear
 
 > **Learned:** turning text into a number to pick a color that never changes, shuffling a list, `matchMedia` (noticing when the screen becomes phone-sized), and that good feedback tells you something.
 
+### Step 20: Typing is faster than clicking ⚡
+I wanted to add a task without touching the date box or the priority menu. Now the text box reads what I type: `tomorrow`, `friday`, `!high`, `weekly`. It takes those words out of the task and fills in the rest. While I type, grey letters finish the word, and a second dog, a Lhasa Apso, tells me what it understood.
+
+> **Learned:** regular expressions again (this time to match whole words only), keeping one small function that does one job (`parseQuickAdd`), and drawing a second dog with SVG shapes.
+
+### Step 21: Undo, date views and repeating tasks 🔁
+A task can disappear with one tap, so a bar now offers **Undo** for 10 seconds. The menu got **Overdue, Due today and Upcoming** views, and tasks can **repeat**: tick one and the next one appears with the next date.
+
+> **Learned:** a list index (to put a task back in its old place), the `popover` element (so the bar shows above a pop-up), working with dates as text that sorts correctly, and testing the odd cases, like a monthly task on the 31st.
+
+### Step 22: A roadmap 🗺️
+I wrote down where the app is going as a page of its own: a trail with a stop for every version, in the same style as the app.
+
+> **Learned:** that a plan is easier to follow when you can see it.
+
 ---
 
 ## 🏷️ Version history
+
+**v0.6** (1 November 2026): **Smart Quick Add** (type a day, a priority or a repeat right in the task), a **Lhasa Apso helper** that teaches the tricks, **Undo after delete**, **Overdue / Due today / Upcoming** views, **repeating tasks**, and a **roadmap page**.
 
 **v0.5** (1 November 2026): the app is now built with **React** (the live site shows the React version). The dog gives real tips instead of praise, the top strip has dog commands in a new order every visit, every tag has its own color, the content stays still when the menu shrinks, and phones get a matching dark browser bar with no white flash.
 
@@ -231,4 +256,4 @@ I noticed the dog only said things like "good human", which nobody needs to hear
 
 ---
 
-*Started 31 October 2026 · Version 0.5 on 1 November 2026 · Made with patience, a lot of questions, and one very good dog.* 🐾
+*Started 31 October 2026 · Version 0.6 on 1 November 2026 · Made with patience, a lot of questions, and one very good dog.* 🐾
