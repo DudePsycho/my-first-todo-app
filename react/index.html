@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My To-Do List</title>
+  <meta name="description" content="The React version of a private to-do list that lives in your browser, with a dog that helps you sort and finish your tasks.">
+  <meta name="theme-color" content="#f7f7f5">
+  <!-- Dark mode BEFORE anything is drawn, so phones don't flash white first.
+       (React switches it too, but only after all of React has loaded) -->
+  <script>
+    try {
+      if (localStorage.getItem("darkMode") === "true") {
+        document.documentElement.dataset.theme = "dark";
+        document.querySelector('meta[name="theme-color"]').content = "#131313";
+      }
+    } catch (error) {
+      // No saved settings (e.g. a private window): just start in light mode
+    }
+  </script>
+  <!-- The same fonts as the plain version -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600&family=Geist:wght@400;500;600&family=Patrick+Hand&display=swap">
+</head>
+<body>
+  <!-- The big difference from the plain version: this page is EMPTY.
+       React builds everything inside this one box from src/App.jsx -->
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

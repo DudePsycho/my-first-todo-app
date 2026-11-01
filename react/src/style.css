@@ -1,0 +1,1766 @@
+/* =============================================
+   DESIGN TOKENS: every font, color, size and timing is named once, here
+   Look: a sketchbook on a desk. Ink outlines and hard shadows (neo-brutalism),
+   paper surfaces, and pastels only where they MEAN something
+   (priority, tags, the dog). Butter yellow is the one accent.
+   ============================================= */
+:root {
+  /* Typography: three families, each with one job */
+  --font-display: "Bricolage Grotesque", "Arial Black", sans-serif;   /* the headings */
+  --font-body: "Geist", "Segoe UI", sans-serif;                       /* everything else (numbers use tabular figures) */
+  --font-hand: "Patrick Hand", "Comic Sans MS", cursive;              /* the dog's handwriting */
+
+  /* Colors: paper and ink, plus pastels with a job */
+  --paper: #f7f7f5;      /* page background, quiet surfaces */
+  --card: #fffdf8;       /* cards: a warm sketchbook white, not a cold screen white */
+  --ink: #1f1f1f;        /* outlines, shadows and headlines */
+  --dark-ink: #1f1f1f;   /* text on pastel colors (stays dark in dark mode) */
+  --text: #1f1f1f;
+  --muted: #606060;      /* grey text and icons */
+  --line: rgba(31, 31, 31, 0.1);   /* faint lines inside things */
+  --butter: #f6dc8e;     /* THE accent: main button, chosen filter, today's star. Also medium priority */
+  --pink: #f59a93;       /* high priority, overdue */
+  --mint: #a9dcb8;       /* low priority, done, progress */
+  --blue: #a9c8ef;
+  --peach: #fbc283;      /* the dog's ears */
+  --lavender: #c3b1ec;   /* the dog's collar */
+  /* Tag colors: every tag gets one of these, picked from its name (see tagColor in tasks.js).
+     All pastel with dark text, so they work in light and dark mode */
+  --tag-blue: var(--blue);
+  --tag-peach: var(--peach);
+  --tag-lavender: var(--lavender);
+  --tag-aqua: #9fdce0;
+  --tag-rose: #f4b6d2;
+  --tag-lime: #cfe39a;
+  --tag-sand: #e6d3ae;
+  --dots: rgba(31, 31, 31, 0.07);   /* dotted background */
+  --backdrop: rgba(31, 31, 31, 0.4);   /* dims the page behind the dog coach */
+
+  /* Dark mode colors (used by the dark theme block below) */
+  --night-paper: #131313;
+  --night-card: #1e1e1e;
+  --night-ink: #f1efe8;
+  --night-muted: #a8a49c;
+  --night-line: rgba(241, 239, 232, 0.12);
+  --night-dots: rgba(241, 239, 232, 0.06);
+
+  /* Shape: corners get rounder as things get bigger */
+  --border: 2px solid var(--ink);
+  --radius-sm: 8px;      /* small buttons, tags, pickers */
+  --radius-md: 12px;     /* inputs, buttons */
+  --radius-lg: 16px;     /* task cards */
+  --radius-xl: 24px;     /* the big panels */
+  --shadow: 6px 6px 0 var(--ink);         /* big hard shadow for panels */
+  --shadow-small: 3px 3px 0 var(--ink);   /* small hard shadow for the main buttons */
+
+  /* Motion: one smooth curve, a few speeds */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --fast: 150ms;     /* hovers and presses */
+  --enter: 400ms;    /* things appearing */
+}
+
+/* Dark mode: same names, swapped colors (outlines turn light).
+   script.js turns it on with <html data-theme="dark"> */
+:root[data-theme="dark"] {
+  --paper: var(--night-paper);
+  --card: var(--night-card);
+  --ink: var(--night-ink);
+  --text: var(--night-ink);
+  --muted: var(--night-muted);
+  --line: var(--night-line);
+  --dots: var(--night-dots);
+  color-scheme: dark;
+
+  /* These use --ink, so they must be written again here to pick up the light ink
+     (otherwise they keep the dark ink from :root, and outlines vanish in dark mode) */
+  --border: 2px solid var(--ink);
+  --shadow: 6px 6px 0 var(--ink);
+  --shadow-small: 3px 3px 0 var(--ink);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Nothing may stick out sideways (clip, unlike hidden, keeps the sticky sidebar working) */
+html {
+  overflow-x: clip;
+}
+
+/* The browser's own bits (selected text, the typing cursor, scrollbars) wear our colors too */
+::selection {
+  color: var(--dark-ink);
+  background-color: var(--butter);
+}
+
+html {
+  caret-color: var(--ink);
+  scrollbar-color: var(--muted) transparent;
+}
+
+/* =============================================
+   PAGE
+   ============================================= */
+body {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.4;
+  background-color: var(--paper);
+  /* a faint dotted grid, like a sketchbook */
+  background-image: radial-gradient(var(--dots) 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+  color: var(--text);
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: clip;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* THE APP SHELL: a full-height sidebar flush on the left, the main area fills the rest */
+.layout {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* Everything to the right of the sidebar */
+.main-area {
+  min-width: 0;
+}
+
+/* The ink strip with the dog's words, across the top of the main area (it stays still) */
+.marquee {
+  padding: 4px 0;
+  overflow: hidden;
+  background-color: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-hand);
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+}
+
+/* The main content: a comfortable reading column in the middle of the main area */
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 40px 128px;   /* extra room at the bottom for the running dog */
+  animation: rise-in var(--enter) var(--ease) both;
+}
+
+/* The one page-load entrance: the main content fades in and rises a little */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =============================================
+   ICONS: line drawings that script.js puts in place of each data-icon
+   ============================================= */
+.icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* =============================================
+   TITLE AREA
+   ============================================= */
+.header {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Today's date: quiet text above the title */
+.eyebrow {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* The page title (app size, not poster size) */
+h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 40px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+/* "to do" with a hand-drawn scribble underneath */
+h1 em {
+  position: relative;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.scribble {
+  position: absolute;
+  left: -2%;
+  bottom: -8px;
+  width: 104%;
+  height: 12px;
+  overflow: visible;
+}
+
+/* The scribble "draws itself" once the page loads */
+.scribble path {
+  fill: none;
+  stroke: var(--peach);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: scribble-draw 0.8s 0.4s var(--ease) forwards;
+}
+
+@keyframes scribble-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* The handwritten line under the title (the dog talking) */
+.subtitle {
+  margin: 16px 0 0;
+  font-family: var(--font-hand);
+  font-size: 18px;
+  color: var(--muted);
+}
+
+/* Every button starts plain: no border, no background */
+button {
+  -webkit-tap-highlight-color: transparent;   /* no grey flash when tapped on phones */
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Keyboard users see a clear ink ring on whatever they're on (it appears instantly) */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  transition: none;
+}
+
+/* A button that can't be used right now looks faded */
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Square outlined moon/sun button */
+#theme-button {
+  align-self: flex-start;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-md);
+  transition: background-color var(--fast) var(--ease), transform var(--fast) var(--ease);
+}
+
+#theme-button .icon {
+  width: 18px;
+  height: 18px;
+}
+
+#theme-button:hover {
+  background-color: var(--paper);
+}
+
+/* =============================================
+   THE DOG 🐶 (the star of the page: it gets the color)
+   ============================================= */
+.dog-spot {
+  position: relative;
+  width: 96px;
+  flex-shrink: 0;
+}
+
+/* The dog sits still until you pet it or finish a task */
+.mascot {
+  display: block;
+  width: 100%;
+  padding: 0;
+}
+
+/* After a click (or a finished task) the dog hops while it talks */
+.mascot.hop {
+  animation: hop 0.45s ease-in-out infinite;
+}
+
+@keyframes hop {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  40% { transform: translateY(-16px) rotate(-4deg); }
+}
+
+/* The drawing: ink outlines, white body, pastel details */
+.dog {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  stroke: var(--ink);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dog-fill {
+  fill: var(--card);
+}
+
+.dog-patch {
+  fill: var(--peach);
+  stroke: none;
+}
+
+.dog-ear {
+  fill: var(--peach);
+}
+
+.dog-collar {
+  fill: var(--lavender);
+}
+
+.dog-tongue {
+  fill: var(--pink);
+}
+
+.dog-nose,
+.dog-eye {
+  fill: var(--ink);
+  stroke: none;
+}
+
+/* The tail wags from its base (only while the dog is happy: hopping or running) */
+.dog-tail {
+  fill: none;
+  stroke-width: 5;
+  transform-box: fill-box;
+  transform-origin: 100% 100%;
+}
+
+.mascot.hop .dog-tail,
+.dog-runner .dog-tail {
+  animation: wag 0.5s ease-in-out infinite;
+}
+
+@keyframes wag {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(18deg); }
+}
+
+/* Legs swing from the top (only while running or hopping) */
+.dog-leg {
+  stroke-width: 7;
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+}
+
+.mascot.hop .leg-a,
+.dog-runner .leg-a {
+  animation: leg-swing 0.22s ease-in-out infinite alternate;
+}
+
+.mascot.hop .leg-b,
+.dog-runner .leg-b {
+  animation: leg-swing 0.22s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes leg-swing {
+  from { transform: rotate(-28deg); }
+  to { transform: rotate(28deg); }
+}
+
+/* The speech bubble above the dog (the dog's handwriting) */
+.bubble {
+  position: absolute;
+  bottom: 100%;
+  right: 4px;
+  z-index: 5;
+  width: max-content;
+  max-width: 220px;
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  font-family: var(--font-hand);
+  font-size: 18px;
+  line-height: 1.2;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 16px 16px 4px 16px;
+  box-shadow: var(--shadow-small);
+  transition: opacity 180ms var(--ease), transform 180ms var(--ease);
+  pointer-events: none;
+}
+
+/* An empty bubble never shows */
+.bubble:empty {
+  display: none;
+}
+
+/* With JavaScript running, the bubble waits hidden until the dog talks */
+.js .bubble {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.js .bubble.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* A dog that runs across the bottom of the screen when you finish a task.
+   The runner is as wide as the screen and slides from left to right;
+   the dog inside it does the hopping */
+.dog-runner {
+  position: fixed;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  pointer-events: none;
+  animation: dog-run 2.6s linear forwards;
+}
+
+.dog-runner .dog {
+  width: 112px;
+  animation: dog-hop 0.65s ease-in-out 4;
+}
+
+@keyframes dog-run {
+  from { transform: translateX(-140px); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes dog-hop {
+  0%, 100% { transform: translateY(0) rotate(4deg); }
+  50% { transform: translateY(-32px) rotate(-6deg); }
+}
+
+/* Paw prints that walk away from a task you just finished */
+.paw-print {
+  position: fixed;
+  z-index: 60;
+  width: 20px;
+  height: 20px;
+  color: var(--ink);
+  pointer-events: none;
+  animation: paw-fade 0.9s var(--ease) both;
+}
+
+.paw-print .icon {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+  stroke: none;
+}
+
+@keyframes paw-fade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(80deg) scale(0.8);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(80deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(80deg) scale(1);
+  }
+}
+
+/* =============================================
+   PRESSABLE: buttons with a hard shadow sink into it when clicked,
+   flat buttons shrink a tiny bit
+   ============================================= */
+#add-button:active,
+.filter-button.active:active,
+.coach-answer.main:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+#theme-button:active,
+.filter-button:not(.active):active,
+.tool-button:active,
+.icon-button:active,
+.coach-answer:not(.main):active,
+.coach-close:active {
+  transform: scale(0.97);
+}
+
+/* =============================================
+   ADDING A TASK
+   ============================================= */
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* The text box: outlined, with a small hard shadow while you type */
+#task-input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding: 0 16px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: box-shadow var(--fast) var(--ease);
+}
+
+#task-input:focus {
+  box-shadow: var(--shadow-small);
+}
+
+#task-input::placeholder {
+  color: var(--muted);
+}
+
+/* The main button: butter yellow with a hard shadow */
+#add-button {
+  height: 48px;
+  padding: 0 24px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dark-ink);
+  background-color: var(--butter);
+  border: var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-small);
+  transition: transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+
+#add-button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+/* The dog's tip under the box */
+.capture-tip {
+  margin: 8px 0 0 4px;
+  font-family: var(--font-hand);
+  font-size: 17px;
+  color: var(--muted);
+}
+
+/* Date picker and priority menu */
+.details-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+#date-input,
+#priority-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+/* =============================================
+   SIDEBAR: filters on top, actions at the bottom
+   ============================================= */
+.sidebar {
+  position: sticky;   /* stays in place while the tasks scroll */
+  top: 0;
+  height: 100vh;
+  height: 100dvh;     /* phones: only the part you can see, not behind the browser's toolbar */
+  overflow-y: auto;   /* scrolls inside itself if the window is short */
+  display: flex;
+  flex-direction: column;   /* lets the footer sit at the very bottom */
+  padding: 12px;
+  background-color: var(--card);
+  border-right: var(--border);
+  transition: background-color 0.3s;
+  scrollbar-width: thin;
+}
+
+/* BRAND: a tiny dog and the app's name, at the top of the sidebar */
+/* It is also the button that opens and closes the menu */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 36px;
+  margin: 0 0 8px;
+  padding: 0 4px;
+  border-radius: 10px;
+  transition: background-color var(--fast) var(--ease);
+}
+
+.brand:hover {
+  background-color: var(--paper);
+}
+
+.brand-dog {
+  width: 44px;
+  flex-shrink: 0;
+}
+
+.brand-dog svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.brand-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* THE BONE (only the brand dog has one): in its mouth while the menu is open... */
+.bone {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 350ms var(--ease);
+}
+
+/* The bone is drawn twice: a thick ink copy underneath makes the outline, the paper copy on top fills it */
+.bone-outline {
+  fill: var(--ink);
+  stroke: var(--ink);
+  stroke-width: 6;
+}
+
+.bone-fill {
+  fill: var(--card);
+  stroke: none;
+}
+
+/* ...and dropped on the floor in front of its paws when the menu is shrunk */
+.is-collapsed .bone {
+  transform: translate(-10px, 40px) rotate(-14deg);
+}
+
+/* The scrim: dims the page behind the open menu on phones (hidden everywhere else) */
+.scrim {
+  display: none;
+}
+
+/* =============================================
+   ICONS-ONLY MENU: the sidebar shrinks to a slim strip of icons
+   (script.js adds "is-collapsed" to .layout when the dog drops the bone)
+   ============================================= */
+.layout.is-collapsed {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
+/* On computers, shrinking the menu must not move the tasks: the main area keeps the 200px
+   the menu gave up (264px - 64px) as empty room on its left, so the tasks stay exactly where
+   they were. The ink strip reaches back over that room, so it still starts at the menu */
+@media (min-width: 761px) {
+  .is-collapsed .main-area {
+    padding-left: 200px;
+  }
+
+  .is-collapsed .marquee {
+    margin-left: -200px;
+  }
+}
+
+.is-collapsed .sidebar {
+  padding: 8px;
+}
+
+.is-collapsed .brand {
+  justify-content: center;
+  padding: 0;
+}
+
+/* Hide every word: names, headings, counts, and the progress line */
+.is-collapsed .brand-name,
+.is-collapsed .menu-title,
+.is-collapsed .label,
+.is-collapsed .count,
+.is-collapsed .progress-row {
+  display: none;
+}
+
+/* A tag's first two letters ("ga" for #garden) only show in the icons-only menu */
+.short {
+  display: none;
+}
+
+.is-collapsed .short {
+  display: inline;
+  font-size: 11px;
+}
+
+/* Filter buttons and tag chips stack into one column, like the lists */
+.is-collapsed .segmented,
+.is-collapsed .tag-chips {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.is-collapsed .segmented .filter-button,
+.is-collapsed .chips .filter-button {
+  flex: none;
+  width: 100%;
+  gap: 2px;
+}
+
+/* A faint line between the groups: lists, filters, tags, tools */
+.is-collapsed .segmented[aria-label="Show"],
+.is-collapsed .tag-chips,
+.is-collapsed .sidebar-footer {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1.5px solid var(--line);
+}
+
+.is-collapsed .segmented + .segmented {
+  margin-top: 2px;
+}
+
+/* The search box becomes a square search button (tapping it opens the menu) */
+.is-collapsed #search-input {
+  padding: 0;
+  color: transparent;
+  cursor: pointer;
+}
+
+.is-collapsed #search-input::placeholder {
+  color: transparent;
+}
+
+/* Icons sit in the middle of each square button */
+.is-collapsed .filter-button,
+.is-collapsed .tool-button {
+  justify-content: center;
+  height: 36px;
+  padding: 0;
+}
+
+.is-collapsed .menu {
+  margin-top: 8px;
+}
+
+.is-collapsed .tool-buttons {
+  flex-direction: column;
+}
+
+.is-collapsed .tool-buttons + .tool-buttons {
+  margin-top: 4px;
+}
+
+.is-collapsed .tool-button .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* SEARCH: an outlined box with a search icon inside on the left */
+.search {
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;   /* clicks go through the icon to the box */
+}
+
+#search-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px 0 36px;   /* room on the left for the icon */
+  font-size: 16px;          /* 16px stops iPhones from zooming in */
+  font-family: inherit;
+  color: var(--text);
+  background-color: var(--paper);
+  border: var(--border);
+  border-radius: 10px;
+  outline: none;
+  transition: box-shadow var(--fast) var(--ease);
+}
+
+#search-input:focus {
+  box-shadow: var(--shadow-small);
+}
+
+#search-input::placeholder {
+  color: var(--muted);
+}
+
+/* Small headings: Lists, Filter, Tags... (sentence case, close to their own group) */
+.menu-title {
+  margin: 8px 0 4px 8px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* One menu option: a row that gets a paper background on hover, butter yellow when chosen */
+.filter-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--fast) var(--ease), border-color var(--fast) var(--ease), transform var(--fast) var(--ease);
+}
+
+.filter-button .icon {
+  color: var(--muted);
+}
+
+.filter-button:hover {
+  background-color: var(--paper);
+}
+
+.filter-button.active {
+  color: var(--dark-ink);
+  background-color: var(--butter);
+  border-color: var(--ink);
+  box-shadow: var(--shadow-small);
+}
+
+.filter-button.active .icon {
+  color: var(--dark-ink);
+}
+
+/* The number on the right of each option: quiet mono text */
+.count {
+  margin-left: auto;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.filter-button.active .count {
+  color: var(--dark-ink);
+}
+
+/* SEGMENTED ROWS (Filter): three buttons side by side, sharing the width */
+.segmented {
+  flex-direction: row;
+  gap: 4px;
+}
+
+.segmented + .segmented {
+  margin-top: 4px;
+}
+
+.segmented .filter-button {
+  flex: 1 1 auto;
+  width: auto;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 4px;
+  font-size: 13px;
+  background-color: var(--paper);
+}
+
+.segmented .filter-button:hover {
+  border-color: var(--line);
+}
+
+.segmented .filter-button.active {
+  background-color: var(--butter);
+  border-color: var(--ink);
+}
+
+.segmented .count {
+  margin-left: 0;
+}
+
+/* TAG CHIPS: projects and contexts as small chips that wrap side by side */
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* The two menus melt into one row of chips (but stay hidden when empty) */
+.chips {
+  display: contents;
+}
+
+.chips[hidden] {
+  display: none;
+}
+
+.chips .filter-button {
+  width: auto;
+  height: 28px;
+  gap: 4px;
+  font-size: 13px;
+  border: 1.5px solid var(--ink);
+}
+
+.chips .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* In the menu, each tag's # or @ sits on a little square of the tag's own color */
+.chips .filter-button .icon {
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+  color: var(--dark-ink);
+  background-color: var(--tag-color, var(--tag-blue));
+  border-radius: 4px;
+}
+
+.chips .count {
+  margin-left: 4px;
+}
+
+/* Priority keys: a tiny task card with its colored shadow edge, exactly like the real
+   cards, so you can see which color means which priority (fills the same 16px space as an icon) */
+.priority-key {
+  width: 12px;
+  height: 10px;
+  margin-right: 2px;
+  flex-shrink: 0;
+  background-color: var(--card);
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  box-shadow: 2px 2px 0 var(--kc);
+}
+
+.filter-button.active .priority-key {
+  border-color: var(--dark-ink);
+}
+
+.key-high {
+  --kc: var(--pink);
+}
+
+.key-medium {
+  --kc: var(--butter);
+}
+
+.key-low {
+  --kc: var(--mint);
+}
+
+/* FOOTER: progress and tools, pushed to the bottom of the sidebar */
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+/* The progress bar and "2 of 5 done" share one line */
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 4px 0 8px;
+}
+
+/* The progress bar: an outlined bar with a mint fill */
+.progress {
+  flex: 1;
+  height: 10px;
+  background-color: var(--paper);
+  border: var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* The fill is full width, squashed from the left by script.js (scaleX(0.4) = 40%) */
+.progress-fill {
+  width: 100%;
+  height: 100%;
+  background-color: var(--mint);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--enter) var(--ease);   /* the bar grows smoothly */
+}
+
+/* "2 of 5 done", next to the progress bar */
+#task-counter {
+  margin: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+/* TOOL BUTTONS: the dog coach and backup actions, two side by side. Outlined, no color */
+.tool-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.tool-button {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 10px;
+  transition: background-color var(--fast) var(--ease), transform var(--fast) var(--ease);
+}
+
+.tool-button:hover {
+  background-color: var(--paper);
+}
+
+.tool-button .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* =============================================
+   SECTIONS: "To do" and "Done"
+   ============================================= */
+.task-section {
+  margin-top: 40px;
+}
+
+.section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+/* The number next to a section title */
+.section-count {
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* =============================================
+   THE TASK CARDS
+   ============================================= */
+.task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* When a list is empty, the dog writes a note (from data-empty) in a dashed box */
+.task-list:empty::before {
+  content: attr(data-empty);
+  display: block;
+  padding: 16px;
+  font-family: var(--font-hand);
+  font-size: 18px;
+  text-align: center;
+  color: var(--muted);
+  border: 2px dashed var(--muted);
+  border-radius: var(--radius-lg);
+}
+
+/* "No tasks match…": the same dashed handwritten box as an empty list */
+.no-results {
+  margin: 40px 0 0;
+  padding: 16px;
+  font-family: var(--font-hand);
+  font-size: 18px;
+  text-align: center;
+  color: var(--muted);
+  border: 2px dashed var(--muted);
+  border-radius: var(--radius-lg);
+}
+
+/* One task: a card with an ink outline. Its shadow color shows the priority (--pc) */
+.task-list li {
+  --pc: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 12px 12px 16px;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 4px 4px 0 var(--pc);
+  animation: task-in 300ms var(--ease);
+}
+
+/* Priority colors for the shadow */
+.task-list li.priority-high {
+  --pc: var(--pink);
+}
+
+.task-list li.priority-medium {
+  --pc: var(--butter);
+}
+
+.task-list li.priority-low {
+  --pc: var(--mint);
+}
+
+/* New or moved tasks fade in and rise a little */
+@keyframes task-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* The task text fills the free space */
+.task-list li .task-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+/* A finished task */
+.done {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+/* Finished task cards are a little quieter */
+#done-list li {
+  background-color: var(--paper);
+}
+
+/* A round outlined checkbox we draw ourselves */
+.task-list input[type="checkbox"] {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  flex-shrink: 0;
+  display: grid;
+  place-content: center;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color var(--fast) var(--ease);
+}
+
+.task-list input[type="checkbox"]:hover {
+  background-color: var(--paper);
+}
+
+.task-list input[type="checkbox"]:checked {
+  background-color: var(--mint);
+}
+
+/* The tick inside a checked circle */
+.task-list input[type="checkbox"]:checked::after {
+  content: "✓";
+  color: var(--dark-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* The due date: a small outlined tag (only when there is a date) */
+.due-date:not(:empty) {
+  padding: 2px 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  background-color: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+}
+
+/* Overdue: pink tag */
+.due-date.overdue {
+  color: var(--dark-ink);
+  background-color: var(--pink);
+}
+
+/* The ☆, edit and delete buttons: quiet icons until you point at them */
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  color: var(--muted);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease), transform var(--fast) var(--ease);
+}
+
+.icon-button:hover {
+  color: var(--text);
+  background-color: var(--paper);
+}
+
+#done-list .icon-button:hover {
+  background-color: var(--card);
+}
+
+/* A starred task: the star fills with butter yellow */
+.focus-button.on {
+  color: var(--ink);
+}
+
+.focus-button.on .icon {
+  fill: var(--butter);
+}
+
+/* The boxes that appear while editing a task */
+.edit-text {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 10px;
+  outline: none;
+}
+
+.edit-date {
+  height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-sm);
+}
+
+/* =============================================
+   GTD: tags, lists and today's focus on each task
+   ============================================= */
+
+/* @home and #garden: small pastel tags (blue = context, peach = project) */
+.tag {
+  display: inline-block;
+  font-family: var(--font-body);   /* even inside the dog's handwritten tip */
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dark-ink);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  vertical-align: 1px;
+}
+
+/* Each tag's color comes from tagColor() in tasks.js, as --tag-color (blue if it's missing) */
+.tag {
+  background-color: var(--tag-color, var(--tag-blue));
+}
+
+/* The list picker on each task (Inbox, Next...). One fixed width, so they line up */
+.status-select {
+  flex-shrink: 0;
+  width: 96px;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--text);
+  background-color: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* Finished tasks don't need a list or a star */
+#done-list .status-select,
+#done-list .focus-button {
+  display: none;
+}
+
+/* =============================================
+   THE DOG COACH: a pop-up card where the dog asks questions
+   ============================================= */
+.coach {
+  width: min(480px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  padding: 24px;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
+}
+
+/* Dim the page behind the pop-up */
+.coach::backdrop {
+  background-color: var(--backdrop);
+}
+
+.coach[open] {
+  animation: rise-in 300ms var(--ease);
+}
+
+/* Top row: small dog, "Sorting · 1 of 3", close button */
+.coach-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.coach-dog {
+  width: 56px;
+  flex-shrink: 0;
+}
+
+.coach-dog svg {
+  width: 100%;
+  height: auto;
+}
+
+.coach-step {
+  flex: 1;
+  margin: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.coach-close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  color: var(--muted);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.coach-close:hover {
+  color: var(--text);
+  background-color: var(--paper);
+}
+
+/* The dog's question, in its handwriting */
+.coach-question {
+  margin: 16px 0 12px;
+  font-family: var(--font-hand);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+/* The task being sorted: a dashed sticky note */
+.coach-task {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  background-color: var(--paper);
+  border: 2px dashed var(--ink);
+  border-radius: var(--radius-md);
+}
+
+/* Small grey helper text */
+.coach-note {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Text boxes inside the coach (next step, brain dump) */
+.coach-input {
+  width: 100%;
+  height: 44px;
+  margin-bottom: 16px;
+  padding: 0 16px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: box-shadow var(--fast) var(--ease);
+}
+
+.coach-input:focus {
+  box-shadow: var(--shadow-small);
+}
+
+/* Lists of tasks in the weekly review */
+.coach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  margin: 0 0 16px;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.coach-list:empty {
+  display: none;
+}
+
+.coach-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 12px;
+  overflow-wrap: anywhere;
+  background-color: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+}
+
+.coach-list small {
+  margin-left: auto;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+/* The answer buttons: outlined, the main answer is butter yellow with a hard shadow */
+.coach-answers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.coach-answer {
+  flex: 1 1 auto;
+  height: 44px;
+  padding: 0 20px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-md);
+  transition: background-color var(--fast) var(--ease), transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+
+.coach-answer:hover {
+  background-color: var(--paper);
+}
+
+.coach-answer.main {
+  font-weight: 600;
+  color: var(--dark-ink);
+  background-color: var(--butter);
+  box-shadow: var(--shadow-small);
+}
+
+/* A small button inside a review list (e.g. "Start") */
+.coach-list .coach-answer {
+  flex: none;
+  height: 28px;
+  margin-left: auto;
+  padding: 0 12px;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+}
+
+/* =============================================
+   SMALL SCREENS: the menu is a slim strip of icons on the left.
+   Tapping the dog slides the full menu OVER the page (the tasks don't move)
+   ============================================= */
+@media (max-width: 760px) {
+  /* The strip's column is always 56px wide, open or not */
+  .layout,
+  .layout.is-collapsed {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+
+  .is-collapsed .sidebar {
+    padding: 8px 6px;
+  }
+
+  .is-collapsed .brand-dog {
+    width: 40px;
+  }
+
+  /* The open menu floats over the page, sliding in from the left */
+  .layout:not(.is-collapsed) .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 40;
+    width: 264px;
+    height: 100%;
+    box-shadow: var(--shadow);
+    animation: menu-in 250ms var(--ease);
+  }
+
+  /* The dimmed page behind it: tap it to close the menu */
+  .layout:not(.is-collapsed) .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background-color: var(--backdrop);
+  }
+
+  .app {
+    padding: 24px 16px 128px;
+  }
+}
+
+@keyframes menu-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* =============================================
+   PHONES: a layout made for narrow screens
+   ============================================= */
+@media (max-width: 480px) {
+  /* The header becomes a small grid:
+     [date]        [moon]
+     [title]       [dog]
+     [subtitle..........] */
+  .header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "eyebrow theme"
+      "title   dog"
+      "sub     sub";
+    align-items: center;
+    column-gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .header-text {
+    display: contents;   /* its children join the grid directly */
+  }
+
+  .eyebrow {
+    grid-area: eyebrow;
+    white-space: nowrap;   /* keep the date on one line */
+  }
+
+  h1 {
+    grid-area: title;
+    font-size: 32px;
+  }
+
+  .subtitle {
+    grid-area: sub;
+    margin-top: 20px;
+    font-size: 18px;
+  }
+
+  .dog-spot {
+    grid-area: dog;
+    width: 72px;
+  }
+
+  #theme-button {
+    grid-area: theme;
+    justify-self: end;
+    align-self: start;
+  }
+
+  /* Text box on top, full-width Add button below */
+  .input-row {
+    flex-wrap: wrap;
+  }
+
+  #task-input {
+    flex-basis: 100%;
+  }
+
+  #add-button {
+    width: 100%;
+  }
+
+  /* Date and priority stacked, full width.
+     16px text stops iPhones from zooming in when you tap them */
+  .details-row {
+    flex-direction: column;
+  }
+
+  #date-input,
+  #priority-input,
+  .edit-text,
+  .edit-date {
+    font-size: 16px;
+  }
+
+  #date-input,
+  #priority-input {
+    flex: none;
+    width: 100%;
+  }
+
+  .task-section {
+    margin-top: 32px;
+  }
+
+  /* Task cards use two rows (the "order" numbers move parts between rows):
+     row 1: checkbox, task text, star
+     row 2: list picker and due date on the left, edit and delete on the right */
+  .task-list li {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .task-list li .task-text,
+  .edit-text {
+    flex: 1 1 calc(100% - 80px);
+  }
+
+  /* Row 2 is narrow next to the icon menu: slimmer list picker and date tag */
+  .status-select {
+    padding: 0 6px;
+    font-size: 11px;
+  }
+
+  /* iPhones only (only they understand this line): they zoom in when you tap
+     text smaller than 16px, so the list picker keeps 16px there */
+  @supports (-webkit-touch-callout: none) {
+    .status-select {
+      font-size: 16px;
+    }
+  }
+
+  .due-date:not(:empty) {
+    padding: 2px 6px;
+    font-size: 11px;
+  }
+
+  /* Finished tasks have no star or list picker, so edit and delete share row 1 */
+  #done-list li .task-text {
+    flex-basis: calc(100% - 120px);
+  }
+
+  .focus-button {
+    order: 1;
+  }
+
+  .status-select {
+    order: 2;
+    width: auto;
+    appearance: none;   /* no arrow on phones, so row 2 fits */
+  }
+
+  .due-date,
+  .edit-date {
+    order: 3;
+  }
+
+  .edit-button {
+    order: 4;
+    margin-left: auto;   /* push edit and delete to the right */
+  }
+
+  .delete-button {
+    order: 5;
+  }
+}
+
+/* People who turn off animations in their system settings get none */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .scribble path {
+    stroke-dashoffset: 0;
+  }
+}

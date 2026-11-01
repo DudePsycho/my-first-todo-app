@@ -1,10 +1,10 @@
 # 🐶 Things to do
 
-**Version 0.2** · My first ever coding project: a to-do list app, built from zero knowledge with the help of [Claude Code](https://claude.com/claude-code).
+**Version 0.5** · My first ever coding project: a to-do list app, built from zero knowledge with the help of [Claude Code](https://claude.com/claude-code). First in plain HTML, CSS and JavaScript, and now rebuilt in **React**.
 
 ### 👉 [**Try it live here**](https://dudepsycho.github.io/my-first-todo-app/). It works on your phone too!
 
-Before this project I had never written a line of code. I didn't know what HTML was, what a function was, or how GitHub worked. This README is the log of how I got from nothing to a working app that helps you get things done, with a dog cheering you on.
+Before this project I had never written a line of code. I didn't know what HTML was, what a function was, or how GitHub worked. This README is the log of how I got from nothing to a working app that helps you get things done, with a dog that helps you along.
 
 ![Screenshot of the to-do app](screenshot.png)
 
@@ -16,37 +16,68 @@ Before this project I had never written a line of code. I didn't know what HTML 
 - ➕ **Add, edit and delete tasks.** New tasks land in your **Inbox**, so you can write things down fast and sort them later.
 - 🗂️ **Lists for every kind of task:** **Next** (things you can do now), **Waiting for** (someone else has to act first) and **Someday** (ideas, no pressure)
 - ⭐ **Today:** star the few tasks you want to focus on today
-- 🏷️ **Tags:** type `#garden` for a project or `@home` for a context, and they become colored chips you can filter by
+- 🏷️ **Tags:** type `#garden` for a project or `@home` for a context, and they become chips you can filter by. Every tag gets its own color, and keeps it
 - 📅 **Due dates** (overdue tasks turn pink) and **priorities** (High / Medium / Low, shown as the color of each card's edge)
 - 🔍 **Search** that filters while you type
 
-**The dog coach** 🐶
+**The dog** 🐶
+- **Pet it for a real tip** about your tasks: what's overdue, what's due today, how many are waiting in your inbox
+- It tells you what just happened: "Added to Inbox. 3 tasks to sort", "Done. 4 tasks left"
+- The strip at the top shows playful dog commands that double as tips ("fetch the next task", "sit. stay. focus."), in a new order every visit
+
+**The dog coach**
 - **Sort my inbox:** the dog asks about each new task, one question at a time. Can you act on it? What's the very next step? Can you do it in under 2 minutes? Who does it?
-- **Weekly review:** the dog walks you through your lists in 8 short steps, from celebrating what you finished to clearing your head
+- **Weekly review:** the dog walks you through your lists in 8 short steps, from what you finished to clearing your head
 
 **Everything else**
 - ✅ Finished tasks move to their own **Done** section, and paw prints walk away from them
 - 📊 A **progress bar** that fills up as you finish tasks
 - 💾 **Remembers everything** in your browser, plus **Download** and **Restore** for a backup file, so your tasks are safe even if the browser data gets cleared
 - 🌙 **Dark mode**, which is remembered too
-- 🦴 **A menu you can shrink:** tap the little dog. Bone in its mouth = full menu, bone dropped = icons only
+- 🦴 **A menu you can shrink:** tap the little dog. Bone in its mouth = full menu, bone dropped = icons only. Your tasks stay exactly where they are
 - 📱 **Made for phones too:** on a phone the menu becomes a slim strip of icons and slides open over the page
 
-It's based on the **Getting Things Done** idea (GTD): get everything out of your head, decide the next step for each thing, put it in the right list, and look over your lists once a week. The dog is kind about it: it cheers when you finish things and never nags.
+It's based on the **Getting Things Done** idea (GTD): get everything out of your head, decide the next step for each thing, put it in the right list, and look over your lists once a week. The dog is there to help: it tells you what's next, and never nags.
 
 ## 🚀 How to use it
 
 **Easiest:** open the [live version](https://dudepsycho.github.io/my-first-todo-app/) in any browser.
 
-**Or run it on your own computer.** No installing needed. It's just three files.
+**Or run it on your own computer.** You need [Node.js](https://nodejs.org/) for the React version.
 
-1. Click the green **Code** button on this page, then **Download ZIP**.
-2. Unzip it.
-3. Double-click **`index.html`**. It opens in your web browser and you're ready to go.
+1. Click the green **Code** button on this page, then **Download ZIP**, and unzip it.
+2. Open the **`react`** folder in a terminal.
+3. Run `npm install` once, then `npm run dev`, and open the link it shows.
+
+The first, plain version needs nothing at all: open the **`html`** folder and double-click **`index.html`**.
 
 Your tasks are saved in your own browser only. Nothing is sent anywhere, and there's no account.
 
 ## 📁 What's inside
+
+The same app, built two ways:
+
+| Folder | What it is |
+|---|---|
+| `react/` | **The React version (the current one).** All new work happens here |
+| `app/` | The React version packed into plain files by `npm run build`. This is what the live site shows |
+| `html/` | **The first, plain version** (up to v0.2): HTML, CSS and JavaScript, no frameworks. It's finished, and kept as it was |
+| `index.html` | A tiny page that sends the live link on to `app/` |
+
+**The React version (`react/`)** splits the app into small pieces called components:
+
+| File (in `react/src/`) | What it does |
+|---|---|
+| `App.jsx` | The app's memory (filter, search, dark mode, the dog) and the main page |
+| `useTasks.js` | The list of tasks, and the only functions allowed to change it. It saves by itself |
+| `TaskItem.jsx` | One task card |
+| `Sidebar.jsx` | The menu |
+| `Coach.jsx` | The dog coach |
+| `Dog.jsx`, `Icon.jsx` | The dog drawing and the line icons |
+| `tasks.js` | Small helpers: finding tags, picking tag colors, checking tasks |
+| `style.css` | How it looks |
+
+**The plain version (`html/`)** is three files:
 
 | File | What it does | Think of it as… |
 |---|---|---|
@@ -54,7 +85,7 @@ Your tasks are saved in your own browser only. Nothing is sent anywhere, and the
 | `style.css` | **How it looks**: colors, fonts, shadows, animations | The paint and decoration |
 | `script.js` | **What it does**: adding, saving, filtering, the dog coach | The electricity and plumbing |
 
-Plain HTML, CSS and JavaScript, with no frameworks and no libraries. The code has lots of comments, because I needed them to understand it.
+The code has lots of comments, because I needed them to understand it.
 
 ---
 
@@ -151,9 +182,21 @@ The little dog at the top of the menu became its switch: with the bone in its mo
 
 > **Learned:** `@media` queries for different screen sizes, `100dvh` (the part of the screen you can actually see), and that a phone is not just a small computer.
 
+### Step 18: Rebuilding it in React ⚛️
+I wanted to learn a framework, so the whole app was rebuilt in **React**, feature for feature, and it looks exactly the same. The big idea: in my plain version *the page was the data*, and after every change I had to remember to save, filter and recount. In React, the list of tasks is the truth and the page is drawn from it, so all of that happens by itself. The plain version is now finished and kept in `html/`.
+
+> **Learned:** components, props, state (`useState`), effects (`useEffect`), my own hook (`useTasks`), why every list item needs a `key`, Node.js and npm, and Vite (the tool that runs and packs a React app).
+
+### Step 19: A dog that actually helps 🐾
+I noticed the dog only said things like "good human", which nobody needs to hear. Now every line is useful: petting it gives a real tip about my tasks, and it says what just happened with a number ("Done. 4 tasks left"). The strip at the top got playful dog commands that are also tips. Tags got their own colors, the content stays perfectly still when the menu shrinks, and I checked everything again on phone sizes.
+
+> **Learned:** turning text into a number to pick a color that never changes, shuffling a list, `matchMedia` (noticing when the screen becomes phone-sized), and that good feedback tells you something.
+
 ---
 
 ## 🏷️ Version history
+
+**v0.5** (1 November 2026): the app is now built with **React** (the live site shows the React version). The dog gives real tips instead of praise, the top strip has dog commands in a new order every visit, every tag has its own color, the content stays still when the menu shrinks, and phones get a matching dark browser bar with no white flash.
 
 **v0.2** (1 November 2026): the dog-and-bone menu that shrinks to icons, a phone layout with a slide-in menu, and fixes so it works on older iPhones too.
 
@@ -176,7 +219,8 @@ The little dog at the top of the menu became its switch: with the bone in its mo
 
 ## 🛠️ Built with
 
-- HTML, CSS and JavaScript (no frameworks)
+- [React](https://react.dev/) and [Vite](https://vite.dev/) (the current version)
+- HTML, CSS and JavaScript (the first version, no frameworks)
 - [Claude Code](https://claude.com/claude-code) as my coding teacher and pair programmer
 - Fonts from [Google Fonts](https://fonts.google.com/): Bricolage Grotesque, Geist and Patrick Hand
 - Icon shapes from [Lucide](https://lucide.dev/) (ISC license)
@@ -187,4 +231,4 @@ The little dog at the top of the menu became its switch: with the bone in its mo
 
 ---
 
-*Started 31 October 2026 · Version 0.2 on 1 November 2026 · Made with patience, a lot of questions, and one very good dog.* 🐾
+*Started 31 October 2026 · Version 0.5 on 1 November 2026 · Made with patience, a lot of questions, and one very good dog.* 🐾
