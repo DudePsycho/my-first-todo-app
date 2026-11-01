@@ -6,9 +6,9 @@
 // React runs App() again, and the counts, filters and lists are simply worked out fresh
 import { useEffect, useRef, useState } from "react";
 import { useTasks } from "./useTasks.js";
-import { LIST_NAMES, LIST_FILTERS, REPEAT_NAMES, findTags, cleanTask, parseQuickAdd, suggestDateWord, todayString, nextDueDate } from "./tasks.js";
+import { LIST_NAMES, LIST_FILTERS, REPEAT_NAMES, findTags, cleanTask, parseQuickAdd, suggestDateWord, todayString, dateString, nextDueDate } from "./tasks.js";
 import Sidebar from "./Sidebar.jsx";
-import TaskItem, { TaskText } from "./TaskItem.jsx";
+import TaskItem, { TaskText, StepList } from "./TaskItem.jsx";
 import Lhasa from "./Lhasa.jsx";
 import Coach from "./Coach.jsx";
 import Dog from "./Dog.jsx";
@@ -60,6 +60,24 @@ function shuffle(list) {
 // "1 task" or "3 tasks": the right word for the number
 function plural(count, word) {
   return count + " " + word + (count === 1 ? "" : "s");
+}
+
+// Settings (dark mode, the menu) are nice to remember, but not worth crashing over:
+// if the browser's storage is full or blocked, they just aren't remembered
+function remember(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    // not remembered this time: that's fine
+  }
+}
+
+function recall(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    return null;
+  }
 }
 
 // A due date for people: "2026-11-06" becomes "Fri 6 Nov"
@@ -154,18 +172,22 @@ function UndoBar({ text, onUndo }) {
 }
 
 export default function App() {
-  const { tasks, addTask, updateTask, toggleDone, deleteTask, restoreTask, addTasks } = useTasks();
+  const { tasks, storageProblem, addTask, updateTask, toggleDone, deleteTask, restoreTask, addTasks } = useTasks();
 
   // ---------- MEMORY: everything that can change on the page ----------
   const [newText, setNewText] = useState("");             // the "What's on your mind?" box
   const [newDate, setNewDate] = useState("");
   const [newPriority, setNewPriority] = useState("medium");
   const [newRepeat, setNewRepeat] = useState("");
+  const [newNotes, setNewNotes] = useState("");           // notes for the task being written
+  const [newNotesOpen, setNewNotesOpen] = useState(false);
+  const [newSteps, setNewSteps] = useState([]);           // steps for the task being written
+  const [newStepsOpen, setNewStepsOpen] = useState(false);
   const [filter, setFilter] = useState("all");            // "all", "inbox", "#garden"...
   const [search, setSearch] = useState("");
-  const [isDark, setIsDark] = useState(() => localStorage.getItem("darkMode") === "true");
+  const [isDark, setIsDark] = useState(() => recall("darkMode") === "true");
   // Menu: shrunk on phones, otherwise the way you left it (open the first time)
-  const [menuOpen, setMenuOpen] = useState(() => !isPhone() && localStorage.getItem("menuOpen") !== "false");
+  const [menuOpen, setMenuOpen] = useState(() => !isPhone() && recall("menuOpen") !== "false");
   const [coach, setCoach] = useState(null);               // null (closed), or { mode: "sort" | "review", key }
 
   // The dog: its speech bubble, its hop, and the running dogs and paw prints on screen
@@ -197,7 +219,7 @@ export default function App() {
       }
       // Phones color their browser bar with this: match the page (--night-paper or --paper)
       document.querySelector('meta[name="theme-color"]').content = isDark ? "#131313" : "#f7f7f5";
-      localStorage.setItem("darkMode", isDark);
+      remember("darkMode", isDark);
     },
     [isDark]
   );
@@ -220,7 +242,7 @@ export default function App() {
   useEffect(
     function () {
       if (!isPhone()) {
-        localStorage.setItem("menuOpen", menuOpen);
+        remember("menuOpen", menuOpen);
       }
     },
     [menuOpen]
@@ -235,7 +257,7 @@ export default function App() {
   const todayDate = todayString();
   const weekAhead = new Date();
   weekAhead.setDate(weekAhead.getDate() + 7);
-  const inAWeek = weekAhead.toLocaleDateString("en-CA");
+  const inAWeek = dateString(weekAhead);
   const dateViews = {
     overdue: (date) => date !== "" && date < todayDate,   // "" (no date) would count as "earlier"
     today: (date) => date === todayDate,
@@ -276,7 +298,9 @@ export default function App() {
   // Does one task fit the chosen filter AND the search?
   const searchWord = search.trim().toLowerCase();
   function isVisible(task) {
-    if (!task.text.toLowerCase().includes(searchWord)) {
+    // Search looks in the task text, its notes and its steps
+    const allText = [task.text, task.notes].concat(task.steps.map((step) => step.text)).join(" ");
+    if (!allText.toLowerCase().includes(searchWord)) {
       return false;
     }
     if (filter === "high" || filter === "medium" || filter === "low") {
@@ -315,12 +339,28 @@ export default function App() {
   const showNoResults = isNarrowed && !showTodo && !showDone;
 
   // ---------- THE DOG ----------
-  function dogSays(message) {
+  // The dog talks for 2.2 seconds (longer for important news, e.g. dogSays("...", 8000))
+  function dogSays(message, howLong = 2200) {
     setBubble({ text: message, show: true });
     // If the dog was already talking, restart the countdown
     clearTimeout(bubbleTimer.current);
-    bubbleTimer.current = setTimeout(() => setBubble((old) => ({ ...old, show: false })), 2200);
+    bubbleTimer.current = setTimeout(() => setBubble((old) => ({ ...old, show: false })), howLong);
   }
+
+  // Saving trouble (see useTasks): the dog says so, for 8 seconds, every time it happens
+  useEffect(
+    function () {
+      const messages = {
+        damaged: "Your saved tasks couldn’t be read. A copy is kept safe in this browser",
+        locked: "Your saved tasks couldn’t be read, so nothing will be saved over them",
+        "save-failed": "Couldn’t save. Download a backup"
+      };
+      if (storageProblem) {
+        dogSays(messages[storageProblem.kind], 8000);
+      }
+    },
+    [storageProblem]
+  );
 
   // A dog runs across the bottom of the screen. Each runner is a little note in memory,
   // drawn at the bottom of the page and crossed off after 2.8 seconds
@@ -391,11 +431,15 @@ export default function App() {
       return;   // nothing left to add (e.g. only "!high" was typed)
     }
     // Typed extras win; otherwise use the date picker and the dropdown
-    addTask(quick.text, quick.dueDate || newDate, quick.priority || newPriority, "inbox", quick.repeat || newRepeat);
+    addTask(quick.text, quick.dueDate || newDate, quick.priority || newPriority, "inbox", quick.repeat || newRepeat, newNotes, newSteps);
     dogSays("Added to Inbox. " + plural(counts.inbox + 1, "task") + " to sort");
     setNewText("");
     setNewDate("");
     setNewRepeat("");
+    setNewNotes("");
+    setNewSteps([]);
+    setNewNotesOpen(false);
+    setNewStepsOpen(false);
   }
 
   function handleToggle(task, event) {
@@ -434,13 +478,15 @@ export default function App() {
 
   // ---------- BACKUP & RESTORE 💾 ----------
   function downloadTasks() {
-    const savedText = localStorage.getItem("tasks") || "[]";
     if (tasks.length === 0) {
       dogSays("Nothing to back up yet");
       return;
     }
+    // The backup is made from the tasks on screen (not from what's saved), so it's complete
+    // even when the browser couldn't save. JSON.stringify(..., null, 2) makes it readable
+    const fileText = JSON.stringify(tasks, null, 2);
     // A Blob is a file made inside the browser. A hidden link downloads it
-    const file = new Blob([savedText], { type: "application/json" });
+    const file = new Blob([fileText], { type: "application/json" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(file);
     link.download = "my-tasks-" + todayString() + ".json";
@@ -463,26 +509,35 @@ export default function App() {
       return;
     }
 
-    // A task counts as a duplicate if it has the same text AND the same due date
-    const alreadyHave = tasks.map((task) => task.text + "|" + task.dueDate);
+    // Which tasks do we already have? Backups from v0.7 on carry each task's permanent id:
+    // the same id = the same task. Older backups have no ids, so for those, the same text
+    // AND the same due date counts as the same task (the way it always worked)
+    const haveIds = tasks.map((task) => task.id);
+    const haveKeys = tasks.map((task) => task.text + "|" + task.dueDate);
     const newTasks = [];
+    let skipped = 0;
     fileTasks.forEach((fileTask) => {
       const task = cleanTask(fileTask);
       if (task === null) {
         return;   // broken task: skip it
       }
+      const hadId = typeof fileTask.id === "string" && fileTask.id !== "";
       const key = task.text + "|" + task.dueDate;
-      if (!alreadyHave.includes(key)) {
-        newTasks.push(task);
-        alreadyHave.push(key);   // so the same task in the file isn't added twice
+      const alreadyHere = hadId ? haveIds.includes(task.id) : haveKeys.includes(key);
+      if (alreadyHere) {
+        skipped = skipped + 1;
+        return;
       }
+      newTasks.push(task);
+      haveIds.push(task.id);   // so the same task in the file isn't added twice
+      haveKeys.push(key);
     });
 
     addTasks(newTasks);
     if (newTasks.length === 0) {
       dogSays("No new tasks. You already have everything in that file");
     } else {
-      dogSays("Restored " + plural(newTasks.length, "task"));
+      dogSays("Restored " + plural(newTasks.length, "task") + (skipped ? ". " + skipped + " already here" : ""));
     }
   }
 
@@ -529,6 +584,7 @@ export default function App() {
         onDelete={() => handleDelete(task.id)}
         onMove={(listKey) => handleMove(task, listKey)}
         onStar={() => handleStar(task)}
+        onAllSteps={(count) => dogSays((count === 1 ? "The step is done" : "All " + count + " steps done") + ". Tick the task when you’re ready")}
       />
     );
   }
@@ -609,7 +665,47 @@ export default function App() {
                     <span className="ghost-typed">{newText}</span>{suggestion}
                   </span>
                 )}
+                {/* Two small icons inside the box, at its right end. Each fills butter yellow
+                    when something is waiting to go into the task.
+                    The paw (steps) only appears once you've started typing a task */}
+                {(newText !== "" || newSteps.length > 0) && (
+                  <button
+                    className={newSteps.length ? "icon-button paw-button on" : "icon-button paw-button"}
+                    title={newStepsOpen ? "Hide steps" : "Add steps"}
+                    aria-label={newStepsOpen ? "Hide steps" : "Add steps"}
+                    aria-expanded={newStepsOpen}
+                    onClick={() => setNewStepsOpen(!newStepsOpen)}
+                  >
+                    <Icon name="paw" />
+                  </button>
+                )}
+                <button
+                  className={newNotes.trim() ? "icon-button notes-button new-notes-button on" : "icon-button notes-button new-notes-button"}
+                  title={newNotesOpen ? "Hide notes" : "Add notes"}
+                  aria-label={newNotesOpen ? "Hide notes" : "Add notes"}
+                  aria-expanded={newNotesOpen}
+                  onClick={() => setNewNotesOpen(!newNotesOpen)}
+                >
+                  <Icon name="notes" />
+                </button>
               </div>
+              {/* Notes and steps for the new task, right under the task box and exactly as wide
+                  (the row is a grid: see .input-row). What's written here goes into the task on Add */}
+              {(newNotesOpen || newStepsOpen) && (
+                <div className="new-details">
+                  {newNotesOpen && (
+                    <textarea
+                      className="notes-box new-notes-box"
+                      aria-label="Notes for the new task"
+                      placeholder="Add notes or links"
+                      rows="3"
+                      value={newNotes}
+                      onChange={(event) => setNewNotes(event.target.value)}
+                    />
+                  )}
+                  {newStepsOpen && <StepList steps={newSteps} onChange={setNewSteps} />}
+                </div>
+              )}
               <button id="add-button" onClick={handleAdd}>Add</button>
             </div>
             {/* THE HELPER under the Add button: the Lhasa Apso and its speech bubble.

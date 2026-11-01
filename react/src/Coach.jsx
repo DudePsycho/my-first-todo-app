@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import Dog from "./Dog.jsx";
 import Icon from "./Icon.jsx";
 import { DueDate } from "./TaskItem.jsx";
-import { findTags } from "./tasks.js";
+import { dateString, findTags } from "./tasks.js";
 
 // The frame every question shares: the dog, the step label, the question, the answer buttons.
 // answers is a list like: [{ label: "Yes", main: true, action: someFunction }]
@@ -308,7 +308,7 @@ function WeeklyReview({ tasks, actions, onClose, onSortInbox }) {
   if (index === 2) {
     const later = new Date();
     later.setDate(later.getDate() + 14);
-    const inTwoWeeks = later.toLocaleDateString("en-CA");
+    const inTwoWeeks = dateString(later);
     const comingUp = todo
       .filter((task) => task.dueDate !== "" && task.dueDate <= inTwoWeeks)
       .sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1));

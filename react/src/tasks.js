@@ -51,9 +51,36 @@ export function tagColor(tag) {
   return "var(--tag-" + TAG_COLORS[number % TAG_COLORS.length] + ")";
 }
 
-// Today as "YYYY-MM-DD", the same shape as our due dates (so they can be compared)
+// A date as "YYYY-MM-DD" text, the shape of our due dates (so they can be compared).
+// Built by hand, so it never depends on the computer's language settings
+export function dateString(date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");   // padStart: 5 becomes "05"
+  const day = String(date.getDate()).padStart(2, "0");
+  return date.getFullYear() + "-" + month + "-" + day;
+}
+
+// Today as "YYYY-MM-DD"
 export function todayString() {
-  return new Date().toLocaleDateString("en-CA");
+  return dateString(new Date());
+}
+
+// Is it a real calendar date? "2026-99-99" has the right shape but isn't one:
+// JavaScript rolls it over to some other day, so it no longer matches the text
+function isRealDate(text) {
+  if (typeof text !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    return false;
+  }
+  const [year, month, day] = text.split("-").map(Number);
+  return dateString(new Date(year, month - 1, day)) === text;
+}
+
+// A new permanent id for a task: a long random code that never repeats.
+// crypto.randomUUID() is built into browsers; the second line is for very old ones
+export function newId() {
+  if (window.crypto && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
 // Check one task (from the saved data or a backup file) and fix anything missing.
@@ -70,11 +97,8 @@ export function cleanTask(task) {
     priority = "medium";
   }
 
-  // Only allow dates that look like "YYYY-MM-DD", otherwise no date
-  let dueDate = task.dueDate;
-  if (typeof dueDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
-    dueDate = "";
-  }
+  // Only allow real calendar dates, otherwise no date
+  const dueDate = isRealDate(task.dueDate) ? task.dueDate : "";
 
   // Only allow the four lists we know. Old tasks have no list: use "next"
   let status = task.status;
@@ -90,28 +114,57 @@ export function cleanTask(task) {
     status: status,
     focus: task.focus === true,
     // Only the three repeats we know. Old tasks have none: ""
-    repeat: Object.keys(REPEAT_NAMES).includes(task.repeat) ? task.repeat : ""
+    repeat: Object.keys(REPEAT_NAMES).includes(task.repeat) ? task.repeat : "",
+    // Notes are free text. Old tasks have none: ""
+    notes: typeof task.notes === "string" ? task.notes : "",
+    // Steps (sub-tasks): a list of { text, done }. Anything broken or empty is dropped
+    steps: Array.isArray(task.steps)
+      ? task.steps
+          .filter((step) => step && typeof step.text === "string" && step.text.trim() !== "")
+          .map((step) => ({ text: step.text.trim(), done: step.done === true }))
+      : [],
+    // A permanent id. Old tasks and backups from before v0.7 have none: they get a new one
+    id: typeof task.id === "string" && task.id !== "" ? task.id : newId(),
+    // A ticked repeating task remembers the id of the fresh copy it made (to untick exactly that one)
+    nextId: typeof task.nextId === "string" ? task.nextId : "",
+    // Monthly repeats: the day of the month it should land on (0 = just use the due date's day)
+    repeatDay: Number.isInteger(task.repeatDay) && task.repeatDay >= 1 && task.repeatDay <= 31 ? task.repeatDay : 0
   };
+}
+
+// Monthly repeats: the day of the month a task should land on. A task first due on the
+// 31st keeps wanting the 31st, even after landing on the 28th in February
+export function monthDay(task) {
+  return task.repeatDay || Number((task.dueDate || todayString()).slice(8));
+}
+
+// The web links in a text: only ones starting with http:// or https://, so nothing
+// else (like a javascript: trick) can ever become a link. A full stop or bracket
+// right after a link is left out ("see https://a.com." gives "https://a.com")
+export function findLinks(text) {
+  const links = text.match(/https?:\/\/[^\s<>"]+/g) || [];
+  return links.map((link) => link.replace(/[.,;:!?)]+$/, ""));
 }
 
 // The next due date of a repeating task: one step after its due date (no date: after today).
 // If that's still in the past, keep stepping until it's today or later
 export function nextDueDate(task) {
   const today = todayString();
-  const date = new Date((task.dueDate || today) + "T00:00");
+  const [year, month, day] = (task.dueDate || today).split("-").map(Number);
+  const date = new Date(year, month - 1, day);
   do {
     if (task.repeat === "monthly") {
-      const day = date.getDate();
+      // Go to the 1st of next month, then to the wanted day, or the month's last day if
+      // the month is shorter: 31 Jan → 28 Feb → 31 Mar. (Day 0 of the month after = the last day)
+      date.setDate(1);
       date.setMonth(date.getMonth() + 1);
-      // 31 Jan + 1 month would roll over to 3 Mar: go back to the last day of February instead
-      if (date.getDate() !== day) {
-        date.setDate(0);
-      }
+      const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+      date.setDate(Math.min(monthDay(task), lastDay));
     } else {
       date.setDate(date.getDate() + (task.repeat === "daily" ? 1 : 7));
     }
-  } while (date.toLocaleDateString("en-CA") < today);
-  return date.toLocaleDateString("en-CA");
+  } while (dateString(date) < today);
+  return dateString(date);
 }
 
 // SMART QUICK ADD: read extra info typed into the task text.
@@ -136,7 +189,7 @@ function dateFromWord(word) {
     // Days until the next one: 1 to 7 (the same weekday as today means next week)
     date.setDate(date.getDate() + ((day - date.getDay() + 6) % 7) + 1);
   }
-  return date.toLocaleDateString("en-CA");
+  return dateString(date);
 }
 
 // Repeat words, and the repeat each one means

@@ -533,10 +533,23 @@ button:disabled {
 /* =============================================
    ADDING A TASK
    ============================================= */
+/* A small grid: the task box and Add on top, and the new task's notes and steps
+   underneath in the task box's column, so they are exactly as wide as the box */
 .input-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 12px;
+}
+
+.input-row #add-button {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.input-row .new-details {
+  grid-column: 1;
+  grid-row: 2;
 }
 
 /* The text box: outlined, with a small hard shadow while you type */
@@ -574,6 +587,60 @@ button:disabled {
 
 .input-wrap #task-input {
   width: 100%;
+  padding-right: 88px;   /* room for the paw and notes icons at the right end */
+}
+
+/* The paw (steps) and notes icons inside the task box, at its right end */
+.new-notes-button,
+.paw-button {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+}
+
+.paw-button {
+  right: 44px;   /* just left of the notes icon */
+}
+
+/* Steps waiting for the new task: the paw fills butter yellow */
+.paw-button.on {
+  color: var(--ink);
+}
+
+.paw-button.on .icon {
+  fill: var(--butter);
+}
+
+.new-notes-button:active,
+.paw-button:active {
+  transform: translateY(-50%) scale(0.97);
+}
+
+/* Notes and steps for the new task, under the task box */
+.new-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Its "Add a step" box looks exactly like the task box above it */
+.new-details .step-add {
+  height: 48px;
+  padding: 0 16px;
+  font-size: 16px;
+  border: var(--border);
+  border-radius: var(--radius-md);
+  transition: box-shadow var(--fast) var(--ease);
+}
+
+.new-details .step-add:focus {
+  box-shadow: var(--shadow-small);
+}
+
+.new-notes-box {
+  background-color: var(--card);
+  border-width: 2px;
 }
 
 .ghost {
@@ -586,6 +653,7 @@ button:disabled {
   color: var(--muted);
   white-space: pre;
   overflow: hidden;
+  padding-right: 88px;   /* the same room for the two icons as the box */
   border: 2px solid transparent;
   pointer-events: none;   /* clicks go through to the box */
 }
@@ -1416,6 +1484,193 @@ button:disabled {
   fill: var(--butter);
 }
 
+/* A task with notes: the notes icon fills with butter yellow too */
+.notes-button.on {
+  color: var(--ink);
+}
+
+.notes-button.on .icon {
+  fill: var(--butter);
+}
+
+/* A tap anywhere on a card opens its notes and steps, so cards show a hand cursor
+   (but not inside the open panel, where you type) */
+.task-list li {
+  cursor: pointer;
+}
+
+.task-list li .notes-panel {
+  cursor: auto;
+}
+
+/* Keyboard users reach the task text with Tab: the same focus ring as buttons */
+.task-text:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* THE NOTES PANEL: its own full-width line under the card, lined up with the task text */
+.task-list li.notes-open {
+  flex-wrap: wrap;
+}
+
+.notes-panel {
+  order: 10;   /* always last, also on phones where the card's parts are reordered */
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 36px;   /* checkbox (24px) + gap (12px) */
+}
+
+.notes-box {
+  width: 100%;
+  min-height: 72px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text);
+  background-color: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+  outline: none;
+}
+
+.notes-box:focus-visible {
+  box-shadow: var(--shadow-small);
+}
+
+/* A link found in the notes: one line, cut with … if it's long */
+.note-link {
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text);
+  text-decoration-color: var(--lavender);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+/* THE STEPS PROGRESS: its own line under the task (the outer span takes the full line,
+   the track inside is short), filling with mint as steps are ticked */
+.task-list li.has-steps {
+  flex-wrap: wrap;
+}
+
+.steps-bar {
+  order: 9;   /* after the card's parts, before the notes panel */
+  flex-basis: 100%;
+  margin-top: -4px;
+  padding-left: 36px;   /* lined up with the task text */
+}
+
+.steps-track {
+  display: block;
+  max-width: 200px;
+  height: 6px;
+  overflow: hidden;
+  background-color: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+}
+
+.steps-fill {
+  display: block;
+  height: 100%;
+  background-color: var(--mint);
+  transform-origin: left;
+  transition: transform var(--enter) var(--ease);
+}
+
+/* THE STEPS: a small checklist with square boxes (round ones are for whole tasks) */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.step input[type="checkbox"] {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex-shrink: 0;
+  background-color: var(--card);
+  border: 1.5px solid var(--ink);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.step input[type="checkbox"]:checked {
+  background-color: var(--mint);
+}
+
+.step input[type="checkbox"]:checked::after {
+  content: "✓";
+  color: var(--dark-ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* A step's text looks like plain text until you tap it */
+.step-text {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background-color: transparent;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.step-text:hover {
+  border-color: var(--line);
+}
+
+.step-text:focus {
+  background-color: var(--card);
+  border-color: var(--ink);
+}
+
+.step-remove {
+  width: 28px;
+  height: 28px;
+}
+
+.step-add {
+  height: 32px;
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background-color: var(--card);
+  border: 1.5px dashed var(--ink);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.step-add:focus {
+  border-style: solid;
+}
+
 /* The boxes that appear while editing a task */
 .edit-text {
   flex: 1;
@@ -1834,12 +2089,15 @@ button:disabled {
   }
 
   /* Text box on top, full-width Add button below */
+  /* One column: the task box, then its notes and steps, then a full-width Add */
   .input-row {
-    flex-wrap: wrap;
+    grid-template-columns: 1fr;
   }
 
-  .input-wrap {
-    flex-basis: 100%;
+  .input-row #add-button,
+  .input-row .new-details {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   #add-button {
@@ -1874,7 +2132,8 @@ button:disabled {
 
   /* Task cards use two rows (the "order" numbers move parts between rows):
      row 1: checkbox, task text, star
-     row 2: list picker and due date on the left, edit and delete on the right */
+     row 2: list picker and due date on the left, edit and delete on the right
+     (an open notes panel is a third row) */
   .task-list li {
     flex-wrap: wrap;
     gap: 8px;
@@ -1884,6 +2143,20 @@ button:disabled {
   .task-list li .task-text,
   .edit-text {
     flex: 1 1 calc(100% - 80px);
+  }
+
+  .notes-panel {
+    padding-left: 0;
+  }
+
+  .notes-box,
+  .step-text,
+  .step-add {
+    font-size: 16px;   /* stops iPhones from zooming in */
+  }
+
+  .steps-bar {
+    padding-left: 32px;   /* checkbox (24px) + the phone gap (8px) */
   }
 
   /* Row 2 is narrow next to the icon menu: slimmer list picker and date tag */
