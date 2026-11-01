@@ -24,6 +24,8 @@
   --blue: #a9c8ef;
   --peach: #fbc283;      /* the dog's ears */
   --lavender: #c3b1ec;   /* the dog's collar */
+  --cream: #f6ecd6;      /* the Lhasa Apso's coat */
+  --sand: #e6d3ae;       /* the Lhasa Apso's ears, fringe and tail, and a tag color */
   /* Tag colors: every tag gets one of these, picked from its name (see tagColor in tasks.js).
      All pastel with dark text, so they work in light and dark mode */
   --tag-blue: var(--blue);
@@ -32,7 +34,7 @@
   --tag-aqua: #9fdce0;
   --tag-rose: #f4b6d2;
   --tag-lime: #cfe39a;
-  --tag-sand: #e6d3ae;
+  --tag-sand: var(--sand);
   --dots: rgba(31, 31, 31, 0.07);   /* dotted background */
   --backdrop: rgba(31, 31, 31, 0.4);   /* dims the page behind the dog coach */
 
@@ -561,6 +563,49 @@ button:disabled {
   color: var(--muted);
 }
 
+/* WORD COMPLETION: the box sits in a wrapper, so the grey rest of a word ("sun" + "day")
+   can lie exactly on top of it. The ghost copies the box's padding, border and font;
+   what you typed is see-through in it, so only the grey "day" shows after your text */
+.input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.input-wrap #task-input {
+  width: 100%;
+}
+
+.ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 16px;
+  color: var(--muted);
+  white-space: pre;
+  overflow: hidden;
+  border: 2px solid transparent;
+  pointer-events: none;   /* clicks go through to the box */
+}
+
+.ghost-typed {
+  color: transparent;
+}
+
+/* "Tab: sunday" under the box: tap it on a phone, or press Tab on a computer */
+.suggest-button {
+  margin-right: 8px;
+  padding: 0 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--text);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
+}
+
 /* The main button: butter yellow with a hard shadow */
 #add-button {
   height: 48px;
@@ -581,14 +626,77 @@ button:disabled {
 }
 
 /* The dog's tip under the box */
-.capture-tip {
-  margin: 8px 0 0 4px;
-  font-family: var(--font-hand);
-  font-size: 17px;
-  color: var(--muted);
+/* THE HELPER: the Lhasa Apso under the Add button, talking in a bubble to its left.
+   It teaches one trick at a time, and while you type it says what it understood */
+.helper {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
 }
 
-/* Date picker and priority menu */
+/* Same look as the main dog's bubble; the sharp corner points at the Lhasa */
+.helper-bubble {
+  max-width: 420px;
+  margin: 0 0 28px;   /* lifted, so the corner points at the Lhasa's face */
+  padding: 8px 12px;
+  font-family: var(--font-hand);
+  font-size: 17px;
+  line-height: 1.3;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: 16px 16px 4px 16px;
+  box-shadow: var(--shadow-small);
+}
+
+/* The small "1/6" that shows there are more tricks */
+.trick-count {
+  margin-left: 8px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The Lhasa is a button: tap it for the next trick. It presses in like our other buttons */
+.lhasa-button {
+  flex-shrink: 0;
+  width: 72px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  transition: transform var(--fast) var(--ease);
+}
+
+.lhasa-button:active {
+  transform: translateY(2px);
+}
+
+/* Its outlines and face stay dark in dark mode too, so its cream coat keeps its look */
+.lhasa {
+  stroke: var(--dark-ink);
+}
+
+.lhasa-coat {
+  fill: var(--cream);
+}
+
+.lhasa-hair {
+  fill: var(--sand);
+}
+
+.lhasa-ink {
+  fill: var(--dark-ink);
+  stroke: none;
+}
+
+.lhasa-strand {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+/* Date picker, priority and repeat menus */
 .details-row {
   display: flex;
   gap: 12px;
@@ -596,7 +704,8 @@ button:disabled {
 }
 
 #date-input,
-#priority-input {
+#priority-input,
+#repeat-input {
   flex: 1;
   min-width: 0;
   height: 40px;
@@ -755,7 +864,8 @@ button:disabled {
   gap: 2px;
 }
 
-/* A faint line between the groups: lists, filters, tags, tools */
+/* A faint line between the groups: lists, dates, filters, tags, tools */
+.is-collapsed .menu[aria-label="Dates"],
 .is-collapsed .segmented[aria-label="Show"],
 .is-collapsed .tag-chips,
 .is-collapsed .sidebar-footer {
@@ -1258,6 +1368,24 @@ button:disabled {
   background-color: var(--pink);
 }
 
+/* A repeating task: "↻ Weekly", the same outlined tag as the date */
+.repeat-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  background-color: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+}
+
+.repeat-tag .icon {
+  width: 12px;
+  height: 12px;
+}
+
 /* The ☆, edit and delete buttons: quiet icons until you point at them */
 .icon-button {
   display: grid;
@@ -1303,7 +1431,8 @@ button:disabled {
   outline: none;
 }
 
-.edit-date {
+.edit-date,
+.edit-repeat {
   height: 32px;
   padding: 0 8px;
   font-size: 13px;
@@ -1551,6 +1680,58 @@ button:disabled {
    SMALL SCREENS: the menu is a slim strip of icons on the left.
    Tapping the dog slides the full menu OVER the page (the tasks don't move)
    ============================================= */
+/* UNDO BAR: "Deleted ‘Learn guitar’ [Undo]", an ink bar at the bottom for 10 seconds.
+   It's a popover, so the browser's own popover styles are replaced here */
+.undo-bar {
+  position: fixed;
+  inset: auto auto 24px 50%;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 8px 8px 8px 16px;
+  overflow: visible;
+  font-size: 15px;
+  color: var(--paper);
+  background-color: var(--ink);
+  border: none;
+  border-radius: var(--radius-md);
+  transform: translateX(-50%);
+  animation: undo-in var(--enter) var(--ease);
+}
+
+@keyframes undo-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 16px);
+  }
+}
+
+.undo-text {
+  display: flex;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* A long task name is cut with "…" so the bar stays one line */
+.undo-name {
+  max-width: 32ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.undo-button {
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 16px;
+  font-weight: 600;
+  color: var(--dark-ink);
+  background-color: var(--butter);
+  border-radius: var(--radius-sm);
+}
+
 @media (max-width: 760px) {
   /* The strip's column is always 56px wide, open or not */
   .layout,
@@ -1657,7 +1838,7 @@ button:disabled {
     flex-wrap: wrap;
   }
 
-  #task-input {
+  .input-wrap {
     flex-basis: 100%;
   }
 
@@ -1673,13 +1854,16 @@ button:disabled {
 
   #date-input,
   #priority-input,
+  #repeat-input,
   .edit-text,
-  .edit-date {
+  .edit-date,
+  .edit-repeat {
     font-size: 16px;
   }
 
   #date-input,
-  #priority-input {
+  #priority-input,
+  #repeat-input {
     flex: none;
     width: 100%;
   }
@@ -1737,8 +1921,19 @@ button:disabled {
   }
 
   .due-date,
-  .edit-date {
+  .edit-date,
+  .repeat-tag,
+  .edit-repeat {
     order: 3;
+  }
+
+  /* Only the ↻ icon on phones, so the card's second row still fits */
+  .repeat-tag {
+    padding: 4px 6px;
+  }
+
+  .repeat-word {
+    display: none;
   }
 
   .edit-button {

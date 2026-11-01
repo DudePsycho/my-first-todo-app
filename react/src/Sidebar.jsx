@@ -49,6 +49,11 @@ export default function Sidebar(props) {
     { value: "waiting", icon: "hourglass", label: "Waiting for" },
     { value: "someday", icon: "moon", label: "Someday" }
   ];
+  const dates = [
+    { value: "overdue", icon: "clock", label: "Overdue" },
+    { value: "today", icon: "calendar", label: "Due today" },
+    { value: "upcoming", icon: "calendar-days", label: "Upcoming" }
+  ];
   const priorities = [
     { value: "high", label: "High" },
     { value: "medium", label: "Medium" },
@@ -96,6 +101,16 @@ export default function Sidebar(props) {
           <FilterButton key={list.value} value={list.value} title={list.label} filter={filter} onChoose={onChoose}>
             <Icon name={list.icon} />
             <span className="label">{list.label}</span> <span className="count">{counts[list.value]}</span>
+          </FilterButton>
+        ))}
+      </nav>
+
+      <p className="menu-title">Dates</p>
+      <nav className="menu" aria-label="Dates">
+        {dates.map((date) => (
+          <FilterButton key={date.value} value={date.value} title={date.label} filter={filter} onChoose={onChoose}>
+            <Icon name={date.icon} />
+            <span className="label">{date.label}</span> <span className="count">{counts[date.value]}</span>
           </FilterButton>
         ))}
       </nav>

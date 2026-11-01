@@ -5,7 +5,7 @@
 // In React it's the other way round: this list is the truth, and the page is drawn from it.
 // Change the list, and React redraws whatever changed by itself.
 import { useEffect, useState } from "react";
-import { cleanTask } from "./tasks.js";
+import { cleanTask, nextDueDate } from "./tasks.js";
 
 // React needs a name tag (an id) for each task, to know which card is which when the list changes.
 // The ids live only in memory: the saved data looks exactly like the plain version's
@@ -49,8 +49,8 @@ export function useTasks() {
   // RULE: never change the list itself. Always make a NEW list with the change in it.
   // That's how React notices something changed (it compares the old list with the new one)
 
-  function addTask(text, dueDate, priority, status) {
-    const task = giveId({ text, done: false, dueDate, priority, status, focus: false });
+  function addTask(text, dueDate, priority, status, repeat = "") {
+    const task = giveId({ text, done: false, dueDate, priority, status, focus: false, repeat });
     // setTasks with a function: "take the newest list and give back a new one"
     setTasks((old) => [...old, task]);   // [...old, task] = all the old tasks, then the new one
   }
@@ -65,7 +65,18 @@ export function useTasks() {
     setTasks(function (old) {
       const task = old.find((task) => task.id === id);
       const others = old.filter((task) => task.id !== id);
-      return [...others, { ...task, done: !task.done }];
+      const changed = { ...task, done: !task.done };
+      if (!task.repeat) {
+        return [...others, changed];
+      }
+      if (changed.done) {
+        // A repeating task was ticked: a fresh copy with the next date (without the star:
+        // Today's focus is chosen each day)
+        return [...others, changed, giveId({ ...task, dueDate: nextDueDate(task), focus: false })];
+      }
+      // It was unticked: take its fresh copy away again, so there are no doubles
+      const copy = others.find((other) => !other.done && other.text === task.text && other.repeat === task.repeat);
+      return [...others.filter((other) => other !== copy), changed];
     });
   }
 
@@ -73,10 +84,16 @@ export function useTasks() {
     setTasks((old) => old.filter((task) => task.id !== id));
   }
 
+  // Put a deleted task back at its old place (for Undo).
+  // slice(0, index) = the tasks before it, slice(index) = the tasks after it
+  function restoreTask(task, index) {
+    setTasks((old) => [...old.slice(0, index), task, ...old.slice(index)]);
+  }
+
   // Add many tasks at once (for Restore). They must already be checked by cleanTask
   function addTasks(newTasks) {
     setTasks((old) => [...old, ...newTasks.map(giveId)]);
   }
 
-  return { tasks, addTask, updateTask, toggleDone, deleteTask, addTasks };
+  return { tasks, addTask, updateTask, toggleDone, deleteTask, restoreTask, addTasks };
 }

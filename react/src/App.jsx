@@ -6,14 +6,25 @@
 // React runs App() again, and the counts, filters and lists are simply worked out fresh
 import { useEffect, useRef, useState } from "react";
 import { useTasks } from "./useTasks.js";
-import { LIST_NAMES, LIST_FILTERS, findTags, cleanTask, tagColor, todayString } from "./tasks.js";
+import { LIST_NAMES, LIST_FILTERS, REPEAT_NAMES, findTags, cleanTask, parseQuickAdd, suggestDateWord, todayString, nextDueDate } from "./tasks.js";
 import Sidebar from "./Sidebar.jsx";
-import TaskItem from "./TaskItem.jsx";
+import TaskItem, { TaskText } from "./TaskItem.jsx";
+import Lhasa from "./Lhasa.jsx";
 import Coach from "./Coach.jsx";
 import Dog from "./Dog.jsx";
 import Icon from "./Icon.jsx";
 
 // The ink strip at the top: things we say to dogs, turned into to-do tips
+// The tricks the Lhasa Apso teaches, one at a time (tap it for the next)
+const TRICKS = [
+  "New tasks land in your Inbox. Sort them later",
+  "Add #garden to group tasks into a project",
+  "Add @home to say where you can do it",
+  "Add !high, !medium or !low to set the priority",
+  "Add today, tomorrow or a day like friday to set a date",
+  "Type the start of a day, like fri, and press Tab to finish it"
+];
+
 const DOG_COMMANDS = [
   "fetch the next task",
   "sit. stay. focus.",
@@ -49,6 +60,11 @@ function shuffle(list) {
 // "1 task" or "3 tasks": the right word for the number
 function plural(count, word) {
   return count + " " + word + (count === 1 ? "" : "s");
+}
+
+// A due date for people: "2026-11-06" becomes "Fri 6 Nov"
+function shortDay(date) {
+  return new Date(date + "T00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 }
 
 // What the dog says when you pet it: something useful about your tasks right now.
@@ -112,18 +128,39 @@ function emptyMessage(search, filter) {
     focus: "Nothing on Today. Star a task to add it here",
     next: "No next steps. Sort your inbox to find some",
     waiting: "You're not waiting on anyone",
-    someday: "No someday ideas yet"
+    someday: "No someday ideas yet",
+    overdue: "Nothing overdue",
+    today: "Nothing due today",
+    upcoming: "Nothing due in the next 7 days"
   };
   return messages[filter] || "No tasks match this filter";
 }
 
+// The "Deleted ‘…’ Undo" bar at the bottom. It's a "popover", which the browser always
+// draws on top of everything, even the dog coach's pop-up (older browsers show a normal bar)
+function UndoBar({ text, onUndo }) {
+  const bar = useRef(null);
+  useEffect(function () {
+    if (bar.current.showPopover) {
+      bar.current.showPopover();
+    }
+  }, []);
+  return (
+    <div className="undo-bar" popover="manual" ref={bar} role="status">
+      <span className="undo-text">Deleted ‘<span className="undo-name">{text}</span>’</span>
+      <button className="undo-button" onClick={onUndo}>Undo</button>
+    </div>
+  );
+}
+
 export default function App() {
-  const { tasks, addTask, updateTask, toggleDone, deleteTask, addTasks } = useTasks();
+  const { tasks, addTask, updateTask, toggleDone, deleteTask, restoreTask, addTasks } = useTasks();
 
   // ---------- MEMORY: everything that can change on the page ----------
   const [newText, setNewText] = useState("");             // the "What's on your mind?" box
   const [newDate, setNewDate] = useState("");
   const [newPriority, setNewPriority] = useState("medium");
+  const [newRepeat, setNewRepeat] = useState("");
   const [filter, setFilter] = useState("all");            // "all", "inbox", "#garden"...
   const [search, setSearch] = useState("");
   const [isDark, setIsDark] = useState(() => localStorage.getItem("darkMode") === "true");
@@ -137,9 +174,16 @@ export default function App() {
   const [paws, setPaws] = useState([]);
   const bubbleTimer = useRef();   // useRef: memory that does NOT redraw the page when it changes
 
+  // UNDO: the last deleted task and where it was, for 10 seconds (null = nothing to undo)
+  const [undo, setUndo] = useState(null);
+  const undoTimer = useRef();
+
   // The strip's commands, shuffled once when the app opens (so every visit reads differently,
   // but they don't jump around while you use the app)
   const [commands] = useState(() => shuffle(DOG_COMMANDS).join(" ✦ ") + " ✦ ");
+
+  // Which trick the Lhasa is showing (0 = the first). Starts at the first one every visit
+  const [trick, setTrick] = useState(0);
 
   // ---------- SIDE EFFECTS: things outside our page box that must follow the memory ----------
 
@@ -186,6 +230,18 @@ export default function App() {
   const todo = tasks.filter((task) => !task.done);
   const done = tasks.filter((task) => task.done);
 
+  // The date views. Each one answers "does this due date belong here?"
+  // Dates are "YYYY-MM-DD" text, so < and > compare them like real dates
+  const todayDate = todayString();
+  const weekAhead = new Date();
+  weekAhead.setDate(weekAhead.getDate() + 7);
+  const inAWeek = weekAhead.toLocaleDateString("en-CA");
+  const dateViews = {
+    overdue: (date) => date !== "" && date < todayDate,   // "" (no date) would count as "earlier"
+    today: (date) => date === todayDate,
+    upcoming: (date) => date > todayDate && date <= inAWeek
+  };
+
   const counts = {
     all: tasks.length,
     active: todo.length,
@@ -197,6 +253,9 @@ export default function App() {
   });
   Object.keys(LIST_NAMES).forEach((listKey) => {
     counts[listKey] = todo.filter((task) => task.status === listKey).length;
+  });
+  Object.keys(dateViews).forEach((view) => {
+    counts[view] = todo.filter((task) => dateViews[view](task.dueDate)).length;
   });
 
   const projects = countTags(todo, "#");
@@ -229,6 +288,9 @@ export default function App() {
     if (LIST_FILTERS.includes(filter)) {
       return !task.done && task.status === filter;
     }
+    if (dateViews[filter]) {
+      return !task.done && dateViews[filter](task.dueDate);
+    }
     if (isTagFilter) {
       return findTags(task.text, filter[0]).includes(filter);
     }
@@ -237,11 +299,15 @@ export default function App() {
 
   const visibleTodo = todo.filter(isVisible);
   const visibleDone = done.filter(isVisible);
+  // In a date view, the earliest date goes on top
+  if (dateViews[filter]) {
+    visibleTodo.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  }
 
   // Which sections to show. When searching or using a narrow filter, hide an empty section
   const isNarrowed = searchWord !== "" || !["all", "active", "done"].includes(filter);
   let showTodo = filter !== "done";
-  let showDone = filter !== "active" && !LIST_FILTERS.includes(filter);
+  let showDone = filter !== "active" && !LIST_FILTERS.includes(filter) && !dateViews[filter];
   if (isNarrowed) {
     showTodo = showTodo && visibleTodo.length > 0;
     showDone = showDone && visibleDone.length > 0;
@@ -277,21 +343,59 @@ export default function App() {
   }
 
   // Finishing a task: the dog runs, and says how many are left
-  function celebrate() {
+  function celebrate(task) {
     runDog();
+    if (task.repeat) {
+      dogSays("Done. Next one due " + shortDay(nextDueDate(task)));
+      return;
+    }
     const left = todo.length - 1;   // the task being finished is still in todo
     dogSays(left === 0 ? "Done. Nothing left to do" : "Done. " + plural(left, "task") + " left");
   }
 
   // ---------- WHAT HAPPENS WHEN YOU CLICK THINGS ----------
-  function handleAdd() {
-    if (newText.trim() === "") {
-      return;
+  // ---------- SMART QUICK ADD (worked out fresh on every key you type) ----------
+  const quick = parseQuickAdd(newText);           // the text, plus a typed priority and date
+  const suggestion = suggestDateWord(newText);    // e.g. "day" while you type "sun"
+  const suggestedWord = suggestion ? (newText.split(" ").pop() + suggestion).toLowerCase() : "";
+
+  // The preview under the box: "Due Fri 6 Nov · High priority · Repeats weekly"
+  const found = [];
+  if (quick.dueDate) {
+    found.push("Due " + shortDay(quick.dueDate));
+  }
+  if (quick.priority) {
+    found.push(quick.priority[0].toUpperCase() + quick.priority.slice(1) + " priority");
+  }
+  if (quick.repeat) {
+    found.push("Repeats " + quick.repeat);
+  }
+
+  // Finish the word you started: "sun" becomes "sunday"
+  function completeWord() {
+    setNewText(newText + suggestion);
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === "Enter") {
+      handleAdd();
     }
-    addTask(newText.trim(), newDate, newPriority, "inbox");
+    if (event.key === "Tab" && suggestion) {
+      event.preventDefault();   // Tab normally jumps to the next button: not now
+      completeWord();
+    }
+  }
+
+  function handleAdd() {
+    if (quick.text === "") {
+      return;   // nothing left to add (e.g. only "!high" was typed)
+    }
+    // Typed extras win; otherwise use the date picker and the dropdown
+    addTask(quick.text, quick.dueDate || newDate, quick.priority || newPriority, "inbox", quick.repeat || newRepeat);
     dogSays("Added to Inbox. " + plural(counts.inbox + 1, "task") + " to sort");
     setNewText("");
     setNewDate("");
+    setNewRepeat("");
   }
 
   function handleToggle(task, event) {
@@ -300,7 +404,7 @@ export default function App() {
       // It's being ticked: paw prints walk away from the checkbox
       const spot = event.target.getBoundingClientRect();
       pawPrints(spot.left + spot.width / 2, spot.top + spot.height / 2);
-      celebrate();
+      celebrate(task);
     }
   }
 
@@ -382,15 +486,32 @@ export default function App() {
     }
   }
 
-  // The functions the dog coach is allowed to use
+  // ---------- UNDO AFTER DELETE ----------
+  // Delete a task, but remember it and its place for 10 seconds, so Undo can bring it back.
+  // A new delete replaces the old one: only the last task can come back
+  function handleDelete(id) {
+    const index = tasks.findIndex((task) => task.id === id);
+    setUndo({ task: tasks[index], index, key: Date.now() });   // key: a new bar for each delete
+    deleteTask(id);
+    clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setUndo(null), 10000);
+  }
+
+  function handleUndo() {
+    restoreTask(undo.task, undo.index);
+    clearTimeout(undoTimer.current);
+    setUndo(null);
+  }
+
+  // The functions the dog coach is allowed to use (its "Delete" also offers Undo)
   const coachActions = {
     addTask,
     updateTask,
-    deleteTask,
+    deleteTask: handleDelete,
     runDog,
     completeTask: function (id) {
       toggleDone(id);
-      celebrate();
+      celebrate(tasks.find((task) => task.id === id));
     }
   };
 
@@ -405,7 +526,7 @@ export default function App() {
         task={task}
         onToggle={(event) => handleToggle(task, event)}
         onUpdate={(changes) => updateTask(task.id, changes)}
-        onDelete={() => deleteTask(task.id)}
+        onDelete={() => handleDelete(task.id)}
         onMove={(listKey) => handleMove(task, listKey)}
         onStar={() => handleStar(task)}
       />
@@ -472,20 +593,48 @@ export default function App() {
             </div>
 
             <div className="input-row">
-              <input
-                type="text"
-                id="task-input"
-                placeholder="What’s on your mind?"
-                aria-label="New task"
-                value={newText}
-                onChange={(event) => setNewText(event.target.value)}
-                onKeyDown={(event) => event.key === "Enter" && handleAdd()}
-              />
+              <div className="input-wrap">
+                <input
+                  type="text"
+                  id="task-input"
+                  placeholder="What’s on your mind?"
+                  aria-label="New task"
+                  value={newText}
+                  onChange={(event) => setNewText(event.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+                {/* The grey rest of a date word, lying exactly over the box */}
+                {suggestion && (
+                  <span className="ghost" aria-hidden="true">
+                    <span className="ghost-typed">{newText}</span>{suggestion}
+                  </span>
+                )}
+              </div>
               <button id="add-button" onClick={handleAdd}>Add</button>
             </div>
-            <p className="capture-tip">
-              New tasks land in your Inbox. Add <span className="tag" style={{ "--tag-color": tagColor("@home") }}>@home</span> for a context or <span className="tag" style={{ "--tag-color": tagColor("#garden") }}>#garden</span> for a project.
-            </p>
+            {/* THE HELPER under the Add button: the Lhasa Apso and its speech bubble.
+                While you type it says what it understood; otherwise it teaches a trick */}
+            <div className="helper">
+              <p className="helper-bubble">
+                {suggestion && (
+                  // onMouseDown + preventDefault keeps the box focused, so a phone's keyboard stays open
+                  <button className="suggest-button" onMouseDown={(event) => event.preventDefault()} onClick={completeWord}>
+                    Tab: {suggestedWord}
+                  </button>
+                )}
+                {found.length > 0 && found.join(" · ")}
+                {!suggestion && found.length === 0 && (
+                  <>
+                    {/* TaskText turns #garden and @home into colored chips, like on the task cards */}
+                    <TaskText text={TRICKS[trick]} />
+                    <span className="trick-count">{trick + 1}/{TRICKS.length}</span>
+                  </>
+                )}
+              </p>
+              <button className="lhasa-button" title="Tap for another trick" aria-label="Show the next trick" onClick={() => setTrick((trick + 1) % TRICKS.length)}>
+                <Lhasa />
+              </button>
+            </div>
 
             <div className="details-row">
               <input type="date" id="date-input" aria-label="Due date" value={newDate} onChange={(event) => setNewDate(event.target.value)} />
@@ -493,6 +642,12 @@ export default function App() {
                 <option value="high">High priority</option>
                 <option value="medium">Medium priority</option>
                 <option value="low">Low priority</option>
+              </select>
+              <select id="repeat-input" aria-label="Repeat" value={newRepeat} onChange={(event) => setNewRepeat(event.target.value)}>
+                <option value="">Doesn’t repeat</option>
+                {Object.keys(REPEAT_NAMES).map((repeat) => (
+                  <option key={repeat} value={repeat}>Repeats {repeat}</option>
+                ))}
               </select>
             </div>
 
@@ -531,6 +686,9 @@ export default function App() {
           <Icon name="paw" />
         </span>
       ))}
+
+      {/* The Undo bar, for 10 seconds after a delete */}
+      {undo && <UndoBar key={undo.key} text={undo.task.text} onUndo={handleUndo} />}
     </>
   );
 }

@@ -3,7 +3,7 @@
 // and React builds it. The task's data comes in as "props" (the attributes on <TaskItem ... />)
 import { useState } from "react";
 import Icon from "./Icon.jsx";
-import { LIST_NAMES, TAG_PATTERN, tagColor, todayString } from "./tasks.js";
+import { LIST_NAMES, REPEAT_NAMES, TAG_PATTERN, tagColor, todayString } from "./tasks.js";
 
 // The task text, with @ and # words turned into little chips
 export function TaskText({ text, className }) {
@@ -41,12 +41,14 @@ export default function TaskItem({ task, onToggle, onUpdate, onDelete, onMove, o
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState("");
   const [draftDate, setDraftDate] = useState("");
+  const [draftRepeat, setDraftRepeat] = useState("");
 
   // The Edit button has two modes: "Edit" starts editing, "Save" saves
   function editOrSave() {
     if (!isEditing) {
       setDraftText(task.text);
       setDraftDate(task.dueDate);
+      setDraftRepeat(task.repeat);
       setIsEditing(true);
       return;
     }
@@ -54,7 +56,7 @@ export default function TaskItem({ task, onToggle, onUpdate, onDelete, onMove, o
     if (newText === "") {
       return;   // don't allow an empty task
     }
-    onUpdate({ text: newText, dueDate: draftDate });
+    onUpdate({ text: newText, dueDate: draftDate, repeat: draftRepeat });
     setIsEditing(false);
   }
 
@@ -76,6 +78,22 @@ export default function TaskItem({ task, onToggle, onUpdate, onDelete, onMove, o
         <input type="date" className="edit-date" value={draftDate} onChange={(event) => setDraftDate(event.target.value)} />
       ) : (
         <DueDate date={task.dueDate} />
+      )}
+
+      {/* Repeating: a small tag like "↻ Weekly", or a dropdown while editing */}
+      {isEditing ? (
+        <select className="edit-repeat" aria-label="Repeat" value={draftRepeat} onChange={(event) => setDraftRepeat(event.target.value)}>
+          <option value="">No repeat</option>
+          {Object.keys(REPEAT_NAMES).map((repeat) => (
+            <option key={repeat} value={repeat}>{REPEAT_NAMES[repeat]}</option>
+          ))}
+        </select>
+      ) : (
+        task.repeat && (
+          <small className="repeat-tag" title={"Repeats " + task.repeat}>
+            <Icon name="repeat" /><span className="repeat-word">{REPEAT_NAMES[task.repeat]}</span>
+          </small>
+        )
       )}
 
       <button className={task.focus ? "icon-button focus-button on" : "icon-button focus-button"} title={starLabel} aria-label={starLabel} onClick={onStar}>
