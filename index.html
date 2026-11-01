@@ -4,63 +4,119 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My To-Do List</title>
-  <!-- Fonts from Google Fonts: Bricolage Grotesque (heavy headlines), Geist (body text),
-       Geist Mono (numbers), Patrick Hand (handwriting) -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@800&family=Geist:wght@400;500;700&family=Geist+Mono:wght@500&family=Patrick+Hand&display=swap">
+  <meta name="description" content="A private to-do list that lives in your browser, with a dog that helps you sort and finish your tasks.">
+  <meta name="theme-color" content="#f7f7f5">
+  <!-- Fonts from Google Fonts: Bricolage Grotesque (the big headline), Geist (everything else),
+       Patrick Hand (the dog's handwriting) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600&family=Geist:wght@400;500;600&family=Patrick+Hand&display=swap">
   <!-- Connects our design file (colors, sizes, spacing) -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- A tilted ink banner with scrolling words (the text is written twice so the loop is seamless) -->
-  <div class="marquee" aria-hidden="true">
-    <div class="marquee-track">
-      <span>good dog ✦ get it done ✦ woof woof ✦ one task at a time ✦ who's a productive human? ✦ treats after this list ✦ </span>
-      <span>good dog ✦ get it done ✦ woof woof ✦ one task at a time ✦ who's a productive human? ✦ treats after this list ✦ </span>
-    </div>
-  </div>
-
-  <!-- The whole layout: menu bar on the left, the app on the right -->
+  <!-- The whole app: a full-height sidebar on the left, the tasks on the right -->
   <div class="layout">
 
-    <!-- SIDEBAR: the menu bar for filtering tasks -->
+    <!-- SIDEBAR: brand on top, then filters, then actions (dog coach, backup) at the bottom.
+         Every <span data-icon="..."> is swapped for a line icon by script.js -->
     <aside class="sidebar">
-      <p class="menu-title">Menu</p>
+      <!-- BRAND: a tiny copy of the dog (added by script.js) and the app's name -->
+      <div class="brand">
+        <span class="brand-dog" id="brand-dog"></span>
+        <span class="brand-name">My To-Do List</span>
+      </div>
+
+      <!-- SEARCH: type a word and only the matching tasks stay visible -->
+      <div class="search">
+        <span class="search-icon" data-icon="search"></span>
+        <input type="search" id="search-input" placeholder="Search" aria-label="Search tasks">
+      </div>
+
+      <!-- LISTS (the GTD way): every unfinished task lives in one of these -->
+      <p class="menu-title">Lists</p>
       <nav class="menu">
+        <button class="filter-button" data-filter="focus"><span data-icon="star"></span>Today <span class="count" id="count-focus">0</span></button>
+        <button class="filter-button" data-filter="inbox"><span data-icon="inbox"></span>Inbox <span class="count" id="count-inbox">0</span></button>
+        <button class="filter-button" data-filter="next"><span data-icon="next"></span>Next <span class="count" id="count-next">0</span></button>
+        <button class="filter-button" data-filter="waiting"><span data-icon="hourglass"></span>Waiting for <span class="count" id="count-waiting">0</span></button>
+        <button class="filter-button" data-filter="someday"><span data-icon="moon"></span>Someday <span class="count" id="count-someday">0</span></button>
+      </nav>
+
+      <!-- FILTER: two rows of side-by-side buttons (what to show, and which priority) -->
+      <p class="menu-title">Filter</p>
+      <nav class="menu segmented" aria-label="Show">
         <button class="filter-button active" data-filter="all">All <span class="count" id="count-all">0</span></button>
         <button class="filter-button" data-filter="active">Active <span class="count" id="count-active">0</span></button>
         <button class="filter-button" data-filter="done">Done <span class="count" id="count-done">0</span></button>
       </nav>
-
-      <p class="menu-title">Priority</p>
-      <nav class="menu">
-        <button class="filter-button" data-filter="high"><span class="dot dot-high"></span>High <span class="count" id="count-high">0</span></button>
-        <button class="filter-button" data-filter="medium"><span class="dot dot-medium"></span>Medium <span class="count" id="count-medium">0</span></button>
-        <button class="filter-button" data-filter="low"><span class="dot dot-low"></span>Low <span class="count" id="count-low">0</span></button>
+      <nav class="menu segmented" aria-label="Priority">
+        <button class="filter-button" data-filter="high" title="High priority"><span class="priority-key key-high"></span>High <span class="count" id="count-high">0</span></button>
+        <button class="filter-button" data-filter="medium" title="Medium priority"><span class="priority-key key-medium"></span>Medium <span class="count" id="count-medium">0</span></button>
+        <button class="filter-button" data-filter="low" title="Low priority"><span class="priority-key key-low"></span>Low <span class="count" id="count-low">0</span></button>
       </nav>
 
-      <!-- A bar that fills up as you finish tasks -->
-      <p class="menu-title">Progress</p>
-      <div class="progress">
-        <div class="progress-fill" id="progress-fill"></div>
+      <!-- TAGS: small chips for projects (#garden) and contexts (@home), built by script.js
+           from the task text. They stay hidden until a task uses one -->
+      <p class="menu-title" id="tags-title" hidden>Tags</p>
+      <div class="tag-chips">
+        <nav class="menu chips" id="projects-menu" aria-label="Projects" hidden></nav>
+        <nav class="menu chips" id="contexts-menu" aria-label="Contexts" hidden></nav>
       </div>
-      <p id="task-counter"></p>
+
+      <!-- FOOTER: pinned to the bottom of the sidebar -->
+      <div class="sidebar-footer">
+        <!-- A bar that fills up as you finish tasks, with "2 of 5 done" next to it -->
+        <div class="progress-row">
+          <div class="progress" aria-hidden="true">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <p id="task-counter"></p>
+        </div>
+
+        <!-- DOG COACH: the dog helps you sort your inbox and review your week -->
+        <p class="menu-title">Dog coach</p>
+        <div class="tool-buttons">
+          <button class="tool-button" id="sort-button" title="Sort my inbox with the dog"><span data-icon="list-checks"></span>Sort inbox</button>
+          <button class="tool-button" id="review-button" title="Weekly review with the dog"><span data-icon="calendar-check"></span>Weekly review</button>
+        </div>
+
+        <!-- BACKUP: save your tasks to a file, or bring them back from one -->
+        <p class="menu-title">Backup</p>
+        <div class="tool-buttons">
+          <button class="tool-button" id="download-button" title="Download my tasks as a backup file"><span data-icon="download"></span>Download</button>
+          <button class="tool-button" id="restore-button" title="Restore tasks from a backup file"><span data-icon="upload"></span>Restore</button>
+        </div>
+
+        <!-- A hidden file picker. The Restore button opens it for us -->
+        <input type="file" id="restore-input" accept=".json,application/json" hidden>
+      </div>
     </aside>
 
-    <!-- MAIN: the app card -->
+    <!-- MAIN AREA: everything to the right of the sidebar -->
+    <div class="main-area">
+
+    <!-- An ink strip with words from the dog (it stays still) -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track">
+        <span>good dog ✦ get it done ✦ woof woof ✦ one task at a time ✦ who’s a productive human? ✦ treats after this list ✦ </span>
+        <span>good dog ✦ get it done ✦ woof woof ✦ one task at a time ✦ who’s a productive human? ✦ treats after this list ✦ </span>
+      </div>
+    </div>
+
+    <!-- MAIN: the page title, the capture box and the tasks -->
     <main class="app">
       <!-- The title, the dog and the dark mode button -->
       <div class="header">
         <div class="header-text">
           <p class="eyebrow" id="today"></p>
-          <h1>Things <em>to do.<svg class="scribble" viewBox="0 0 200 20" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M3 13 C 40 5, 80 17, 120 9 S 180 6, 197 12"/></svg></em></h1>
+          <h1>Things <em>to do<svg class="scribble" viewBox="0 0 200 20" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M3 13 C 40 5, 80 17, 120 9 S 180 6, 197 12"/></svg></em></h1>
           <p class="subtitle">One thing at a time. The dog believes in you.</p>
         </div>
 
         <!-- THE DOG: click it! Its speech bubble sits above it -->
         <div class="dog-spot">
           <p class="bubble" id="dog-bubble"></p>
-          <button class="mascot" id="mascot" aria-label="Pet the dog" title="Pet the dog!">
+          <button class="mascot" id="mascot" aria-label="Pet the dog" title="Pet the dog">
             <!-- The dog is drawn with simple shapes: lines, circles and ellipses -->
             <svg class="dog" id="dog-drawing" viewBox="0 0 130 100" aria-hidden="true">
               <path class="dog-tail" d="M30 52 C 18 46, 14 34, 20 24"/>
@@ -81,29 +137,34 @@
           </button>
         </div>
 
-        <button id="theme-button">🌙</button>
+        <button id="theme-button" aria-label="Switch light or dark mode"></button>
       </div>
 
       <!-- The box where you type a task, and the button to add it -->
       <div class="input-row">
-        <input type="text" id="task-input" placeholder="What do you need to do?">
+        <input type="text" id="task-input" placeholder="What’s on your mind?" aria-label="New task">
         <button id="add-button">Add</button>
       </div>
+      <!-- A tip from the dog: new tasks land in the inbox, and @ and # words become tags -->
+      <p class="capture-tip">New tasks land in your Inbox. Add <span class="tag tag-context">@home</span> for a context or <span class="tag tag-project">#garden</span> for a project.</p>
 
       <!-- Pick a due date and priority for the new task -->
       <div class="details-row">
-        <input type="date" id="date-input">
-        <select id="priority-input">
-          <option value="high">🔴 High priority</option>
-          <option value="medium" selected>🟡 Medium priority</option>
-          <option value="low">🟢 Low priority</option>
+        <input type="date" id="date-input" aria-label="Due date">
+        <select id="priority-input" aria-label="Priority">
+          <option value="high">High priority</option>
+          <option value="medium" selected>Medium priority</option>
+          <option value="low">Low priority</option>
         </select>
       </div>
+
+      <!-- Shown only when a search or a filter finds nothing -->
+      <p class="no-results" id="no-results" hidden></p>
 
       <!-- SECTION 1: tasks that still need doing -->
       <section class="task-section" id="todo-section">
         <h2 class="section-title">To do <span class="section-count" id="todo-count"></span></h2>
-        <ul class="task-list" id="task-list" data-empty="all clear! the dog is very proud 🐶"></ul>
+        <ul class="task-list" id="task-list" data-empty="all clear. the dog is very proud 🐶"></ul>
       </section>
 
       <!-- SECTION 2: finished tasks -->
@@ -113,7 +174,22 @@
       </section>
     </main>
 
+    </div>
+
   </div>
+
+  <!-- THE DOG COACH: a pop-up where the dog asks questions one at a time.
+       script.js fills it in for "Sort my inbox" and "Weekly review" -->
+  <dialog class="coach" id="coach">
+    <div class="coach-top">
+      <div class="coach-dog" id="coach-dog"></div>
+      <p class="coach-step" id="coach-step"></p>
+      <button class="coach-close" id="coach-close" aria-label="Close"><span data-icon="x"></span></button>
+    </div>
+    <h2 class="coach-question" id="coach-question"></h2>
+    <div class="coach-body" id="coach-body"></div>
+    <div class="coach-answers" id="coach-answers"></div>
+  </dialog>
 
   <!-- Connects our behavior file (what happens when you click things) -->
   <script src="script.js"></script>
