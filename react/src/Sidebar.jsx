@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Dog from "./Dog.jsx";
 import Icon from "./Icon.jsx";
-import { tagColor } from "./tasks.js";
+import { LEVELS, levelProgress, tagColor } from "./tasks.js";
 
 // One menu button. Writing it once as a component saves repeating the same lines 20 times
 function FilterButton({ value, title, filter, onChoose, style, children }) {
@@ -34,8 +34,8 @@ function TagMenu({ label, tags, symbol, filter, onChoose }) {
 }
 
 export default function Sidebar(props) {
-  const { menuOpen, onToggleMenu, search, onSearch, filter, onChoose, counts, projects, contexts } = props;
-  const { onSortInbox, onReview, onDownload, onRestoreFile } = props;
+  const { menuOpen, onToggleMenu, search, onSearch, filter, onChoose, counts, projects, contexts, streak, level } = props;
+  const { onSortInbox, onReview, onTemplates, onDownload, onRestoreFile } = props;
 
   // useRef: a way to reach a real element on the page, here the hidden file picker
   const fileInput = useRef(null);
@@ -60,9 +60,18 @@ export default function Sidebar(props) {
     { value: "low", label: "Low" }
   ];
 
-  // The progress bar and "2 of 5 done"
-  const progress = counts.all === 0 ? 0 : counts.done / counts.all;
-  const progressText = counts.all === 0 ? "No tasks yet" : counts.done + " of " + counts.all + " done";
+  // The progress bar. With streaks and levels on (level is a number), it fills toward the dog's
+  // next level, in that level's color: "Good pup · 13 to Trail dog".
+  // Switched off (level is null): finished tasks out of all of them, "2 of 5 done"
+  let progress = counts.all === 0 ? 0 : counts.done / counts.all;
+  let progressText = counts.all === 0 ? "No tasks yet" : counts.done + " of " + counts.all + " done";
+  let progressClass = "progress";
+  if (level !== null) {
+    const next = LEVELS[level + 1];
+    progress = levelProgress(counts.done);
+    progressText = LEVELS[level].name + " · " + (next ? next.at - counts.done + " to " + next.name : counts.done + " done");
+    progressClass = "progress level-" + level;
+  }
 
   // A file was chosen: hand it to App, then empty the picker so the same file works again
   function fileChosen(event) {
@@ -115,6 +124,14 @@ export default function Sidebar(props) {
         ))}
       </nav>
 
+      <p className="menu-title">Progress</p>
+      <nav className="menu" aria-label="Progress">
+        <FilterButton value="history" title="History" filter={filter} onChoose={onChoose}>
+          <Icon name="chart" />
+          <span className="label">History</span>
+        </FilterButton>
+      </nav>
+
       <p className="menu-title">Filter</p>
       <nav className="menu segmented" aria-label="Show">
         <FilterButton value="active" title="Active (not done yet)" filter={filter} onChoose={onChoose}>
@@ -144,11 +161,17 @@ export default function Sidebar(props) {
 
       <div className="sidebar-footer">
         <div className="progress-row">
-          <div className="progress" aria-hidden="true">
+          <div className={progressClass} aria-hidden="true">
             <div className="progress-fill" style={{ transform: "scaleX(" + progress + ")" }}></div>
           </div>
           <p id="task-counter">{progressText}</p>
         </div>
+        {/* Days in a row (0 = no run going, or rewards switched off): nothing shown */}
+        {streak > 0 && (
+          <p className="streak-line">
+            <Icon name="flame" /> {streak === 1 ? "1 day" : streak + " days"} in a row
+          </p>
+        )}
 
         <p className="menu-title">Dog coach</p>
         <div className="tool-buttons">
@@ -157,6 +180,9 @@ export default function Sidebar(props) {
           </button>
           <button className="tool-button" title="Weekly review with the dog" onClick={onReview}>
             <Icon name="calendar-check" /><span className="label">Weekly review</span>
+          </button>
+          <button className="tool-button" title="Add a set of tasks from a template" onClick={onTemplates}>
+            <Icon name="template" /><span className="label">Templates</span>
           </button>
         </div>
 

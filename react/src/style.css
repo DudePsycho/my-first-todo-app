@@ -25,7 +25,13 @@
   --peach: #fbc283;      /* the dog's ears */
   --lavender: #c3b1ec;   /* the dog's collar */
   --cream: #f6ecd6;      /* the Lhasa Apso's coat */
-  --sand: #e6d3ae;       /* the Lhasa Apso's ears, fringe and tail, and a tag color */
+  --sand: #e6d3ae;
+  --pebble: #d6d3cc;     /* the Puppy level's grey */
+  /* Text colors in notes (each one readable on paper; dark mode has lighter ones) */
+  --note-red: #b83a2e;
+  --note-green: #2f7a4b;
+  --note-blue: #2d68ad;
+  --note-purple: #7347b8;       /* the Lhasa Apso's ears, fringe and tail, and a tag color */
   /* Tag colors: every tag gets one of these, picked from its name (see tagColor in tasks.js).
      All pastel with dark text, so they work in light and dark mode */
   --tag-blue: var(--blue);
@@ -71,6 +77,10 @@
   --muted: var(--night-muted);
   --line: var(--night-line);
   --dots: var(--night-dots);
+  --note-red: #ff958a;
+  --note-green: #8fd6a4;
+  --note-blue: #9cc3f5;
+  --note-purple: #c9b5f4;
   color-scheme: dark;
 
   /* These use --ink, so they must be written again here to pick up the light ink
@@ -87,17 +97,14 @@
 /* Nothing may stick out sideways (clip, unlike hidden, keeps the sticky sidebar working) */
 html {
   overflow-x: clip;
+  caret-color: var(--ink);
+  scrollbar-color: var(--muted) transparent;
 }
 
 /* The browser's own bits (selected text, the typing cursor, scrollbars) wear our colors too */
 ::selection {
   color: var(--dark-ink);
   background-color: var(--butter);
-}
-
-html {
-  caret-color: var(--ink);
-  scrollbar-color: var(--muted) transparent;
 }
 
 /* =============================================
@@ -151,7 +158,12 @@ body {
   max-width: 960px;
   margin: 0 auto;
   padding: 32px 40px 128px;   /* extra room at the bottom for the running dog */
-  animation: rise-in var(--enter) var(--ease) both;
+  animation: rise-in var(--enter) var(--ease) backwards;   /* "backwards": nothing stays applied afterwards. A leftover transform would shift everything dragged on the board */
+}
+
+/* The board and calendar: more room for their columns */
+.app.wide {
+  max-width: 1440px;
 }
 
 /* The one page-load entrance: the main content fades in and rises a little */
@@ -359,6 +371,27 @@ button:disabled {
 
 .dog-collar {
   fill: var(--lavender);
+}
+
+/* The tag on the collar: one color per dog level (Puppy has none) */
+.dog-tag {
+  stroke-width: 2.5;
+}
+
+.tag-level-1 {
+  fill: var(--mint);
+}
+
+.tag-level-2 {
+  fill: var(--blue);
+}
+
+.tag-level-3 {
+  fill: var(--pink);
+}
+
+.tag-level-4 {
+  fill: var(--butter);
 }
 
 .dog-tongue {
@@ -625,16 +658,25 @@ button:disabled {
 }
 
 /* Its "Add a step" box looks exactly like the task box above it */
+.new-details .step {
+  padding-left: 16px;
+}
+
+.new-details .step-add-box {
+  left: 16px;
+}
+
 .new-details .step-add {
   height: 48px;
-  padding: 0 16px;
+  padding: 0 16px 0 48px;
   font-size: 16px;
-  border: var(--border);
+  border: 2px dashed var(--ink);
   border-radius: var(--radius-md);
   transition: box-shadow var(--fast) var(--ease);
 }
 
 .new-details .step-add:focus {
+  border-style: solid;
   box-shadow: var(--shadow-small);
 }
 
@@ -772,6 +814,7 @@ button:disabled {
 }
 
 #date-input,
+#remind-input,
 #priority-input,
 #repeat-input {
   flex: 1;
@@ -904,7 +947,8 @@ button:disabled {
 .is-collapsed .menu-title,
 .is-collapsed .label,
 .is-collapsed .count,
-.is-collapsed .progress-row {
+.is-collapsed .progress-row,
+.is-collapsed .streak-line {
   display: none;
 }
 
@@ -934,6 +978,7 @@ button:disabled {
 
 /* A faint line between the groups: lists, dates, filters, tags, tools */
 .is-collapsed .menu[aria-label="Dates"],
+.is-collapsed .menu[aria-label="Progress"],
 .is-collapsed .segmented[aria-label="Show"],
 .is-collapsed .tag-chips,
 .is-collapsed .sidebar-footer {
@@ -1191,17 +1236,17 @@ button:disabled {
   padding-top: 12px;
 }
 
-/* The progress bar and "2 of 5 done" share one line */
+/* "Good pup · 13 to Trail dog" (or "2 of 5 done") on top, the bar under it at full width,
+   so a long level name never squeezes the bar */
 .progress-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column-reverse;   /* the bar comes first in the HTML, but shows second */
+  gap: 6px;
   margin: 0 4px 0 8px;
 }
 
 /* The progress bar: an outlined bar with a mint fill */
 .progress {
-  flex: 1;
   height: 10px;
   background-color: var(--paper);
   border: var(--border);
@@ -1216,7 +1261,24 @@ button:disabled {
   background-color: var(--mint);
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform var(--enter) var(--ease);   /* the bar grows smoothly */
+  transition: transform var(--enter) var(--ease), background-color var(--enter) var(--ease);   /* the bar grows smoothly */
+}
+
+/* With levels on, the bar takes the color of the dog's level (the same as its collar tag) */
+.level-0 .progress-fill {
+  background-color: var(--pebble);
+}
+
+.level-2 .progress-fill {
+  background-color: var(--blue);
+}
+
+.level-3 .progress-fill {
+  background-color: var(--pink);
+}
+
+.level-4 .progress-fill {
+  background-color: var(--butter);
 }
 
 /* "2 of 5 done", next to the progress bar */
@@ -1231,6 +1293,7 @@ button:disabled {
 /* TOOL BUTTONS: the dog coach and backup actions, two side by side. Outlined, no color */
 .tool-buttons {
   display: flex;
+  flex-wrap: wrap;   /* three buttons: two on the first line, one on the next */
   gap: 4px;
 }
 
@@ -1326,8 +1389,188 @@ button:disabled {
   border-radius: var(--radius-lg);
 }
 
+/* STREAKS AND LEVEL: three small fact tiles, then the dog's level across the full width */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.fact {
+  margin: 0;
+  padding: 12px 16px;
+  color: var(--muted);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.fact strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.level-fact {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 16px;
+}
+
+.level-dog {
+  width: 64px;
+  flex-shrink: 0;
+}
+
+.level-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.level-text strong {
+  font-size: 20px;
+}
+
+/* "Show streaks and levels": a small switch under the tiles */
+.rewards-switch {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 32px;
+  font-size: 14px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+/* Right under the tiles, it sits closer */
+.facts + .rewards-switch {
+  margin-top: 12px;
+}
+
+/* The sidebar's "3 days in a row", under the progress bar */
+.streak-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 4px 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.streak-line .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* THE HISTORY CHART: a card with 7 thin bars, one per day */
+.history-chart {
+  margin-top: 12px;
+  padding: 16px;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-small);
+}
+
+.chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chart-title {
+  margin: 0;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-title strong {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--text);
+}
+
+.icon-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.bars {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bar-day {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.bar-day:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* The bar stands on a faint baseline, so an empty day still shows its spot */
+.bar-area {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 120px;
+  border-bottom: 1.5px solid var(--line);
+}
+
+.bar {
+  width: 100%;
+  max-width: 28px;
+  background-color: var(--mint);
+  border: 1.5px solid var(--ink);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  transition: height var(--enter) var(--ease);
+}
+
+/* The number above a bar: only while you point at it (or Tab to it) */
+.bar-tip {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  visibility: hidden;
+}
+
+.bar-day:hover .bar-tip,
+.bar-day:focus-visible .bar-tip {
+  visibility: visible;
+}
+
+.bar-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Today's day name is in ink, so you can find it */
+.today .bar-label {
+  font-weight: 700;
+  color: var(--text);
+}
+
 /* One task: a card with an ink outline. Its shadow color shows the priority (--pc) */
-.task-list li {
+.task-list > li {
   --pc: var(--ink);
   display: flex;
   align-items: center;
@@ -1338,19 +1581,20 @@ button:disabled {
   border: var(--border);
   border-radius: var(--radius-lg);
   box-shadow: 4px 4px 0 var(--pc);
+  cursor: pointer;   /* a tap anywhere on a card opens its notes and steps */
   animation: task-in 300ms var(--ease);
 }
 
 /* Priority colors for the shadow */
-.task-list li.priority-high {
+.task-list > li.priority-high {
   --pc: var(--pink);
 }
 
-.task-list li.priority-medium {
+.task-list > li.priority-medium {
   --pc: var(--butter);
 }
 
-.task-list li.priority-low {
+.task-list > li.priority-low {
   --pc: var(--mint);
 }
 
@@ -1367,7 +1611,7 @@ button:disabled {
 }
 
 /* The task text fills the free space */
-.task-list li .task-text {
+.task-list > li .task-text {
   flex: 1;
   min-width: 0;
   font-size: 15px;
@@ -1383,12 +1627,13 @@ button:disabled {
 }
 
 /* Finished task cards are a little quieter */
-#done-list li {
+#done-list > li,
+.history-list > li {
   background-color: var(--paper);
 }
 
 /* A round outlined checkbox we draw ourselves */
-.task-list input[type="checkbox"] {
+.task-list > li > input[type="checkbox"] {
   appearance: none;
   width: 24px;
   height: 24px;
@@ -1403,16 +1648,16 @@ button:disabled {
   transition: background-color var(--fast) var(--ease);
 }
 
-.task-list input[type="checkbox"]:hover {
+.task-list > li > input[type="checkbox"]:hover {
   background-color: var(--paper);
 }
 
-.task-list input[type="checkbox"]:checked {
+.task-list > li > input[type="checkbox"]:checked {
   background-color: var(--mint);
 }
 
 /* The tick inside a checked circle */
-.task-list input[type="checkbox"]:checked::after {
+.task-list > li > input[type="checkbox"]:checked::after {
   content: "✓";
   color: var(--dark-ink);
   font-size: 13px;
@@ -1471,7 +1716,8 @@ button:disabled {
   background-color: var(--paper);
 }
 
-#done-list .icon-button:hover {
+#done-list .icon-button:hover,
+.history-list .icon-button:hover {
   background-color: var(--card);
 }
 
@@ -1493,13 +1739,8 @@ button:disabled {
   fill: var(--butter);
 }
 
-/* A tap anywhere on a card opens its notes and steps, so cards show a hand cursor
-   (but not inside the open panel, where you type) */
-.task-list li {
-  cursor: pointer;
-}
-
-.task-list li .notes-panel {
+/* No hand cursor inside the open panel, where you type */
+.task-list > li .notes-panel {
   cursor: auto;
 }
 
@@ -1511,7 +1752,7 @@ button:disabled {
 }
 
 /* THE NOTES PANEL: its own full-width line under the card, lined up with the task text */
-.task-list li.notes-open {
+.task-list > li.notes-open {
   flex-wrap: wrap;
 }
 
@@ -1524,23 +1765,288 @@ button:disabled {
   padding-left: 36px;   /* checkbox (24px) + gap (12px) */
 }
 
+/* THE NOTES BOX: the note you can format, with the toolbar along its bottom edge */
 .notes-box {
   width: 100%;
-  min-height: 72px;
-  padding: 8px 12px;
-  font-family: inherit;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--text);
   background-color: var(--paper);
   border: 1.5px solid var(--ink);
   border-radius: var(--radius-sm);
-  resize: vertical;
+  overflow: hidden;
+  cursor: auto;
+  transition: box-shadow var(--fast) var(--ease);
+}
+
+.notes-box:focus-within {
+  box-shadow: var(--shadow-small);
+}
+
+/* The writing area (TipTap gives it the class "rich-text") */
+.rich-text {
+  min-height: 72px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 8px 12px;
   outline: none;
 }
 
-.notes-box:focus-visible {
-  box-shadow: var(--shadow-small);
+.rich-text > * {
+  margin: 0 0 6px;
+}
+
+.rich-text > *:last-child {
+  margin-bottom: 0;
+}
+
+/* "Add notes or links" while the note is empty */
+.rich-text p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.rich-text h2 {
+  font-family: var(--font-display);
+  font-size: 1.35em;
+  line-height: 1.2;
+}
+
+.rich-text h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+/* Lists: the bullet styles chosen in the toolbar */
+.rich-text ul,
+.rich-text ol {
+  padding-left: 22px;
+}
+
+.rich-text ul[data-style="circle"] {
+  list-style-type: circle;
+}
+
+.rich-text ul[data-style="square"] {
+  list-style-type: square;
+}
+
+.rich-text li > p {
+  margin: 0;
+}
+
+/* The checklist: a small square box, like the steps */
+.rich-text ul[data-type="taskList"] {
+  padding-left: 0;
+  list-style: none;
+}
+
+.rich-text ul[data-type="taskList"] > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.rich-text ul[data-type="taskList"] > li > label {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.rich-text ul[data-type="taskList"] > li > div {
+  flex: 1;
+}
+
+.rich-text ul[data-type="taskList"] p {
+  margin: 0;   /* the text sits level with its box */
+}
+
+.rich-text ul[data-type="taskList"] > li[data-checked="true"] > div {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.rich-text input[type="checkbox"] {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  background-color: var(--card);
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.rich-text input[type="checkbox"]:checked {
+  background-color: var(--mint);
+}
+
+.rich-text input[type="checkbox"]:checked::after {
+  content: "✓";
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--dark-ink);
+}
+
+.rich-text mark {
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+/* Dark mode: highlighted text gets dark letters, because the highlights are light pastels.
+   !important is needed here: TipTap writes "color: inherit" straight onto each highlight */
+:root[data-theme="dark"] .rich-text mark {
+  color: var(--dark-ink) !important;
+}
+
+/* Tables: thin ink lines, a tinted header row */
+.rich-text table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.rich-text th,
+.rich-text td {
+  min-width: 40px;
+  padding: 4px 8px;
+  vertical-align: top;
+  border: 1px solid var(--ink);
+}
+
+.rich-text th {
+  font-weight: 600;
+  text-align: left;
+  background-color: var(--card);
+}
+
+.rich-text th > p,
+.rich-text td > p {
+  margin: 0;
+}
+
+/* The cells you've selected by dragging across a table */
+.rich-text .selectedCell {
+  background-color: var(--butter);
+  color: var(--dark-ink);
+}
+
+/* THE TOOLBAR: small icon buttons along the bottom of the box, wrapping onto a second
+   line when the box is narrow */
+.rich-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background-color: var(--card);
+  border-top: 1.5px solid var(--line);
+}
+
+.tool {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--muted);
+  border-radius: 6px;
+  transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.tool .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.tool:hover:not(:disabled) {
+  color: var(--text);
+  background-color: var(--paper);
+}
+
+/* A style that's on where the cursor is (bold, a list...): butter, like a chosen filter */
+.tool.on {
+  color: var(--dark-ink);
+  background-color: var(--butter);
+}
+
+.tool:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* The thin gap between groups of buttons */
+.tool-gap {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background-color: var(--line);
+}
+
+.tool-select {
+  height: 28px;
+  padding: 0 4px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background-color: var(--paper);
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* The color swatches and the table buttons: a row just above the toolbar */
+.swatches,
+.table-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background-color: var(--card);
+  border-top: 1.5px solid var(--line);
+}
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  background-color: var(--swatch);
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+}
+
+.swatch:hover {
+  transform: scale(1.1);
+}
+
+.swatch-none {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background-color: var(--paper);
+}
+
+.swatch-none .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.table-tools button {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+}
+
+.table-tools button:hover {
+  background-color: var(--butter);
+  color: var(--dark-ink);
 }
 
 /* A link found in the notes: one line, cut with … if it's long */
@@ -1559,7 +2065,7 @@ button:disabled {
 
 /* THE STEPS PROGRESS: its own line under the task (the outer span takes the full line,
    the track inside is short), filling with mint as steps are ticked */
-.task-list li.has-steps {
+.task-list > li.has-steps {
   flex-wrap: wrap;
 }
 
@@ -1599,9 +2105,11 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding-left: 10px;   /* lines the tick boxes up with the square in "Add a step" */
 }
 
-.step input[type="checkbox"] {
+.step input[type="checkbox"],
+.rewards-switch input {
   appearance: none;
   display: grid;
   place-content: center;
@@ -1615,11 +2123,13 @@ button:disabled {
   cursor: pointer;
 }
 
-.step input[type="checkbox"]:checked {
+.step input[type="checkbox"]:checked,
+.rewards-switch input:checked {
   background-color: var(--mint);
 }
 
-.step input[type="checkbox"]:checked::after {
+.step input[type="checkbox"]:checked::after,
+.rewards-switch input:checked::after {
   content: "✓";
   color: var(--dark-ink);
   font-size: 11px;
@@ -1655,9 +2165,29 @@ button:disabled {
   height: 28px;
 }
 
+/* "+ Add a step": the box, with a faded empty square inside on the left */
+.step-add-row {
+  position: relative;
+  display: block;
+}
+
+.step-add-box {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--ink);
+  border-radius: 5px;
+  opacity: 0.35;
+  transform: translateY(-50%);
+  pointer-events: none;   /* clicks go through to the text box */
+}
+
 .step-add {
+  width: 100%;
   height: 32px;
-  padding: 0 10px;
+  padding: 0 10px 0 40px;   /* room for the square, and the text lines up with the steps above */
   font-family: inherit;
   font-size: 14px;
   color: var(--text);
@@ -1687,6 +2217,7 @@ button:disabled {
 }
 
 .edit-date,
+.edit-remind,
 .edit-repeat {
   height: 32px;
   padding: 0 8px;
@@ -1710,14 +2241,10 @@ button:disabled {
   font-size: 12px;
   line-height: 18px;
   color: var(--dark-ink);
+  background-color: var(--tag-color, var(--tag-blue));   /* from tagColor() in tasks.js */
   border: 1.5px solid var(--ink);
   border-radius: 6px;
   vertical-align: 1px;
-}
-
-/* Each tag's color comes from tagColor() in tasks.js, as --tag-color (blue if it's missing) */
-.tag {
-  background-color: var(--tag-color, var(--tag-blue));
 }
 
 /* The list picker on each task (Inbox, Next...). One fixed width, so they line up */
@@ -1738,7 +2265,9 @@ button:disabled {
 
 /* Finished tasks don't need a list or a star */
 #done-list .status-select,
-#done-list .focus-button {
+#done-list .focus-button,
+.history-list .status-select,
+.history-list .focus-button {
   display: none;
 }
 
@@ -1782,12 +2311,20 @@ button:disabled {
   height: auto;
 }
 
+/* The label beside the dog ("Templates", "Weekly review, step 2 of 8"): a small outlined chip,
+   like the tags on the cards. margin-right: auto pushes the close button to the far right */
 .coach-step {
-  flex: 1;
-  margin: 0;
-  font-size: 12px;
+  margin: 0 auto 0 0;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
   font-variant-numeric: tabular-nums;
-  color: var(--muted);
+  color: var(--text);
+  background-color: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  user-select: none;   /* a label, not text to copy: a double-click won't highlight it */
 }
 
 .coach-close {
@@ -1880,6 +2417,120 @@ button:disabled {
   background-color: var(--paper);
   border: 1.5px solid var(--ink);
   border-radius: 10px;
+}
+
+/* TEMPLATES: each template is one big button (with a delete button for your own) */
+.template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.template-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.template-pick {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 14px;
+  font: inherit;
+  text-align: left;
+  color: var(--muted);
+  background-color: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--fast) var(--ease);
+}
+
+.template-pick:hover {
+  background-color: var(--butter);
+  color: var(--dark-ink);
+}
+
+.template-pick strong {
+  color: var(--text);
+}
+
+.template-pick:hover strong {
+  color: var(--dark-ink);
+}
+
+/* "+ New template": full width, under the list */
+.template-new {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+/* "Deleted ‘Trip packing’ Undo", for 6 seconds after a delete */
+.template-undo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 6px 6px 6px 14px;
+  font-size: 14px;
+  color: var(--paper);
+  background-color: var(--ink);
+  border-radius: var(--radius-md);
+}
+
+/* "Bring back the ready-made templates": a quiet underlined link */
+.link-button {
+  display: block;
+  margin: 0 auto 16px;
+  font-size: 14px;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-button:hover {
+  color: var(--text);
+}
+
+/* THE TEMPLATE FORM: a small label over each box */
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.form-label span {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* The tasks box grows with its lines, instead of the one-line height of the other boxes */
+.template-items {
+  height: auto;
+  padding: 10px 16px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.form-problem {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* "Save #garden" buttons, side by side */
+.template-save {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
 .coach-list small {
@@ -1975,6 +2626,58 @@ button:disabled {
   max-width: 32ch;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* THE REMINDER BAR: like the Undo bar, a little higher (so both fit), with a bell */
+.reminder-bar {
+  bottom: 84px;
+  gap: 8px;
+}
+
+.reminder-bar > .icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.reminder-bar .undo-text {
+  gap: 4px;   /* the space after "Missed at 15:00:" */
+  margin-right: 8px;
+}
+
+/* Phones: the reminder on its own line, the buttons on the next */
+@media (max-width: 480px) {
+  .reminder-bar {
+    flex-wrap: wrap;
+    width: calc(100% - 32px);
+  }
+
+  .reminder-bar .undo-text {
+    flex: 1 1 calc(100% - 60px);
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+
+  .reminder-bar .undo-button {
+    flex: 1;
+    padding: 0 8px;
+    white-space: nowrap;
+  }
+}
+
+/* Snooze is the quieter choice: outlined instead of filled */
+.reminder-bar .snooze-button {
+  color: var(--paper);
+  background-color: transparent;
+  border: 1.5px solid var(--paper);
+}
+
+.reminder-close {
+  color: var(--paper);
+}
+
+.reminder-close:hover {
+  color: var(--ink);
 }
 
 .undo-button {
@@ -2111,15 +2814,18 @@ button:disabled {
   }
 
   #date-input,
+  #remind-input,
   #priority-input,
   #repeat-input,
   .edit-text,
   .edit-date,
+  .edit-remind,
   .edit-repeat {
     font-size: 16px;
   }
 
   #date-input,
+  #remind-input,
   #priority-input,
   #repeat-input {
     flex: none;
@@ -2131,18 +2837,22 @@ button:disabled {
   }
 
   /* Task cards use two rows (the "order" numbers move parts between rows):
-     row 1: checkbox, task text, star
-     row 2: list picker and due date on the left, edit and delete on the right
+     row 1: checkbox, task text, star, edit, delete
+     row 2: list picker, due date, repeat and reminder
      (an open notes panel is a third row) */
-  .task-list li {
+  .task-list > li {
     flex-wrap: wrap;
     gap: 8px;
     padding: 12px;
   }
 
-  .task-list li .task-text,
+  .task-list > li .task-text,
   .edit-text {
-    flex: 1 1 calc(100% - 80px);
+    flex: 1 1 calc(100% - 158px);   /* room for the checkbox and three buttons on row 1 */
+  }
+
+  .task-list > li > .icon-button {
+    width: 30px;
   }
 
   .notes-panel {
@@ -2159,10 +2869,13 @@ button:disabled {
     padding-left: 32px;   /* checkbox (24px) + the phone gap (8px) */
   }
 
-  /* Row 2 is narrow next to the icon menu: slimmer list picker and date tag */
+  /* Row 2 is narrow next to the icon menu: a slimmer list picker (no arrow) and date tag */
   .status-select {
+    order: 2;
+    width: auto;
     padding: 0 6px;
     font-size: 11px;
+    appearance: none;
   }
 
   /* iPhones only (only they understand this line): they zoom in when you tap
@@ -2178,24 +2891,20 @@ button:disabled {
     font-size: 11px;
   }
 
-  /* Finished tasks have no star or list picker, so edit and delete share row 1 */
-  #done-list li .task-text {
-    flex-basis: calc(100% - 120px);
+  /* Finished tasks have no star or list picker: a little more room for the text */
+  #done-list > li .task-text,
+  .history-list > li .task-text {
+    flex-basis: calc(100% - 112px);
   }
 
   .focus-button {
     order: 1;
   }
 
-  .status-select {
-    order: 2;
-    width: auto;
-    appearance: none;   /* no arrow on phones, so row 2 fits */
-  }
-
   .due-date,
   .edit-date,
   .repeat-tag,
+  .edit-remind,
   .edit-repeat {
     order: 3;
   }
@@ -2209,13 +2918,9 @@ button:disabled {
     display: none;
   }
 
-  .edit-button {
-    order: 4;
-    margin-left: auto;   /* push edit and delete to the right */
-  }
-
+  .edit-button,
   .delete-button {
-    order: 5;
+    order: 1;   /* up on row 1, beside the star */
   }
 }
 
@@ -2230,5 +2935,1786 @@ button:disabled {
 
   .scribble path {
     stroke-dashoffset: 0;
+  }
+}
+
+/* =============================================
+   VIEWS: List · Board · Calendar
+   ============================================= */
+/* The switch above the tasks: a row of three buttons, the chosen one in butter */
+.view-tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 32px;
+  padding: 4px;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-md);
+}
+
+.view-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.view-tabs button:hover {
+  color: var(--text);
+}
+
+.view-tabs button.chosen {
+  color: var(--dark-ink);
+  background-color: var(--butter);
+}
+
+.view-tabs .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* The smaller Month · Week switch inside the calendar */
+.view-tabs.small {
+  margin-top: 0;
+  border-width: 1.5px;
+}
+
+.view-tabs.small button {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+/* Cards and calendar tasks show their priority as a colored stripe on the left */
+.board-card.priority-high,
+.cal-chip.priority-high,
+.cal-row.priority-high {
+  --pc: var(--pink);
+}
+
+.board-card.priority-medium,
+.cal-chip.priority-medium,
+.cal-row.priority-medium {
+  --pc: var(--butter);
+}
+
+.board-card.priority-low,
+.cal-chip.priority-low,
+.cal-row.priority-low {
+  --pc: var(--mint);
+}
+
+/* =============================================
+   THE BOARD
+   ============================================= */
+.board {
+  margin-top: 20px;
+}
+
+.board-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.board-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.board-group select {
+  height: 34px;
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.board-lanes-switch {
+  margin-top: 0;
+}
+
+/* The columns sit side by side; a wide board scrolls sideways inside itself */
+.board-grid {
+  display: grid;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+}
+
+/* Each row repeats the board's columns, so the cells line up under their headers */
+.board-row {
+  display: grid;
+  gap: 12px;
+}
+
+.lane-title {
+  grid-column: 1 / -1;
+  margin: 8px 0 -4px;
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+/* A column's header: its name (tap to fold) and its count (tap to set a limit) */
+.board-head {
+  position: relative;   /* holds the sort menu */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 6px 4px 12px;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-md);
+  transition: background-color var(--fast) var(--ease);
+}
+
+.board-fold {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  text-align: left;
+}
+
+.board-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.limit-button {
+  min-width: 32px;
+  height: 26px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  background-color: var(--paper);
+  border-radius: 999px;
+}
+
+.limit-button:not(:disabled):hover {
+  color: var(--text);
+  outline: 1.5px solid var(--ink);
+}
+
+.limit-input {
+  width: 56px;
+  height: 26px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background-color: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+}
+
+/* Over its limit: the header turns pink (a fact to notice, not an alarm) */
+.board-head.over-limit {
+  color: var(--dark-ink);
+  background-color: var(--pink);
+}
+
+.board-head.over-limit .limit-button {
+  color: var(--dark-ink);
+  background-color: var(--card);
+}
+
+/* A folded column: a thin strip with its name written downwards */
+.board-head.folded {
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 10px 0;
+}
+
+.board-head.folded .board-fold {
+  flex: none;
+  writing-mode: vertical-rl;
+}
+
+.board-cell.folded {
+  min-height: 80px;
+  border-style: dashed;
+}
+
+/* A cell: the cards of one column (in one row). It lights up when a card is dragged over it */
+.board-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 80px;
+  padding: 8px;
+  background-color: var(--dots);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-md);
+  transition: background-color var(--fast) var(--ease), border-color var(--fast) var(--ease);
+}
+
+.board-cell.over {
+  background-color: color-mix(in srgb, var(--butter) 35%, transparent);
+  border-color: var(--ink);
+  border-style: dashed;
+}
+
+.board-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A CARD: ink outline, priority stripe on the left, made to be scanned quickly */
+.board-card {
+  position: relative;   /* holds its ⋯ menu (and the "+2" badge while dragging) */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 10px 10px 14px;
+  background-color: var(--card);
+  border: 1.5px solid var(--ink);
+  border-left: 5px solid var(--pc, var(--ink));
+  border-radius: var(--radius-md);
+  box-shadow: 2px 2px 0 var(--ink);
+  cursor: grab;
+  touch-action: manipulation;
+  transition: box-shadow var(--fast) var(--ease);
+}
+
+.board-card:hover {
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.board-card:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.board-card.is-done {
+  background-color: var(--paper);
+}
+
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.card-top input[type="checkbox"] {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  background-color: var(--card);
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.card-top input[type="checkbox"]:checked {
+  background-color: var(--mint);
+}
+
+.card-top input[type="checkbox"]:checked::after {
+  content: "✓";
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dark-ink);
+}
+
+.card-star {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  fill: var(--butter);
+}
+
+/* The small facts under the text: date, repeat, reminder, steps, notes */
+.card-facts:empty {
+  display: none;
+}
+
+.card-fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.card-fact .icon {
+  width: 13px;
+  height: 13px;
+}
+
+/* "+ Add a task" at the bottom of a cell: a quiet dashed line that firms up when you point at it */
+.board-add {
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 13px;
+  text-align: left;
+  color: var(--muted);
+  border: 1.5px dashed transparent;
+  border-radius: var(--radius-sm);
+  transition: border-color var(--fast) var(--ease), background-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.board-add:hover,
+.board-add:focus-visible {
+  color: var(--text);
+  background-color: var(--card);
+  border-color: var(--ink);
+}
+
+/* Phones: the column tabs (scroll sideways if they don't fit) */
+.board-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.board-tab {
+  flex-shrink: 0;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  background-color: var(--card);
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+}
+
+.board-tab .count {
+  font-weight: 400;
+}
+
+.board-tab.chosen {
+  color: var(--dark-ink);
+  background-color: var(--butter);
+}
+
+.board-tab.over {
+  border-style: dashed;
+  background-color: color-mix(in srgb, var(--butter) 50%, transparent);
+}
+
+/* =============================================
+   THE CALENDAR
+   ============================================= */
+.calendar {
+  margin-top: 20px;
+}
+
+.cal-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cal-today {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
+}
+
+.cal-today:hover {
+  color: var(--dark-ink);
+  background-color: var(--butter);
+}
+
+/* The title is a button: click it to jump to any date */
+.cal-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 2px 8px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  border-radius: var(--radius-sm);
+}
+
+.cal-title:hover {
+  background-color: var(--card);
+  outline: 1.5px solid var(--ink);
+}
+
+.cal-title .icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* The month (or week) and the "No date" panel beside it */
+.cal-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 16px;
+  align-items: start;
+}
+
+.cal-weekdays,
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.cal-weekdays span {
+  padding: 0 8px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* The grid: thin lines between days, an ink frame around the month */
+.cal-grid {
+  overflow: hidden;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.cal-day {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  min-height: 112px;
+  padding: 6px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background-color var(--fast) var(--ease);
+}
+
+.cal-day:nth-child(7n) {
+  border-right: none;
+}
+
+.week .cal-day {
+  min-height: 320px;
+  border-bottom: none;
+}
+
+.cal-day.outside {
+  background-color: var(--paper);
+}
+
+.cal-day.outside .cal-date {
+  color: var(--muted);
+}
+
+.cal-day.over {
+  background-color: color-mix(in srgb, var(--butter) 40%, transparent);
+  outline: 2px dashed var(--ink);
+  outline-offset: -3px;
+}
+
+.cal-day.chosen {
+  background-color: color-mix(in srgb, var(--butter) 20%, transparent);
+}
+
+/* The day's number; today's is a butter circle */
+.cal-date {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 4px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  border-radius: 999px;
+}
+
+.cal-weekday {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.cal-day.today .cal-date {
+  color: var(--dark-ink);
+  background-color: var(--butter);
+  outline: 1.5px solid var(--ink);
+}
+
+.cal-day.today .cal-weekday {
+  color: var(--dark-ink);
+}
+
+.cal-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A task on the calendar: one line, priority stripe on the left */
+.cal-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 2px 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text);
+  background-color: var(--paper);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--pc, var(--ink));
+  border-radius: 5px;
+  cursor: grab;
+  touch-action: manipulation;
+}
+
+.cal-chip:hover {
+  border-color: var(--ink);
+  border-left-color: var(--pc, var(--ink));
+}
+
+.cal-chip:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.cal-chip-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-chip-time {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.cal-chip-icon {
+  flex-shrink: 0;
+  width: 11px;
+  height: 11px;
+}
+
+/* A repeating task's future visit: faded and dashed, not draggable */
+.cal-chip.visit {
+  opacity: 0.55;
+  border-style: dashed;
+  cursor: pointer;
+}
+
+.cal-chip.is-done {
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.cal-chip.is-done .cal-chip-text {
+  text-decoration: line-through;
+}
+
+.cal-chip.overdue {
+  background-color: color-mix(in srgb, var(--pink) 30%, var(--paper));
+}
+
+.cal-more {
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.cal-more:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+/* Phones (month): a count on each day, tinted by its most urgent task */
+.cal-count {
+  align-self: center;
+  min-width: 22px;
+  padding: 1px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--dark-ink);
+  background-color: var(--pebble);
+  border-radius: 999px;
+}
+
+.cal-count.priority-high {
+  background-color: var(--pink);
+}
+
+.cal-count.priority-medium {
+  background-color: var(--butter);
+}
+
+.cal-count.priority-low {
+  background-color: var(--mint);
+}
+
+/* The "No date" panel */
+.cal-nodate {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-lg);
+  transition: background-color var(--fast) var(--ease);
+}
+
+.cal-nodate.over {
+  background-color: color-mix(in srgb, var(--butter) 40%, var(--card));
+  border-style: dashed;
+}
+
+.cal-nodate h3,
+.cal-daylist h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 16px;
+}
+
+.cal-nodate .count {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.cal-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cal-nodate .cal-chips {
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+/* The chosen day's tasks, listed under the calendar */
+.cal-daylist {
+  margin-top: 16px;
+  padding: 16px;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.cal-daylist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.cal-daylist-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cal-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  font-size: 14px;
+  text-align: left;
+  color: var(--text);
+  background-color: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-left: 5px solid var(--pc, var(--ink));
+  border-radius: var(--radius-sm);
+}
+
+.cal-row .cal-chip-text {
+  white-space: normal;
+}
+
+.cal-row.visit {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+.cal-row.is-done .cal-chip-text {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+@media (max-width: 760px) {
+  .view-tabs {
+    display: flex;
+    margin-top: 24px;
+  }
+
+  .view-tabs button {
+    flex: 1;
+    justify-content: center;
+    padding: 0 8px;
+  }
+
+  /* One column at a time, as wide as the screen. !important beats the desktop
+     column sizes, which the board writes straight onto the page */
+  .board-grid,
+  .board-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .board-grid {
+    overflow-x: visible;
+  }
+
+  .board-head .board-fold {
+    pointer-events: none;   /* no folding on phones */
+  }
+
+  .cal-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cal-title {
+    font-size: 16px;
+  }
+
+  .cal-day {
+    align-items: center;
+    min-height: 52px;
+    padding: 4px 2px;
+  }
+
+  .cal-date {
+    padding: 0 4px;
+  }
+
+  .month .cal-weekday {
+    display: none;
+  }
+
+  /* The week on a phone: one day per row, each with its tasks */
+  .week .cal-weekdays {
+    display: none;
+  }
+
+  .week .cal-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .week .cal-day {
+    align-items: stretch;
+    min-height: 56px;
+    padding: 8px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .cal-chip {
+    padding: 4px 8px;
+    font-size: 13px;
+  }
+}
+
+/* The week has room: task names wrap instead of being cut short,
+   and the bell and time go under the name instead of squeezing it */
+.week .cal-day .cal-chip {
+  flex-wrap: wrap;
+}
+
+.week .cal-day .cal-chip-text {
+  flex: 1 1 60%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* =============================================
+   DRAGGING: lift, slot, settle (shared by the board and the calendar)
+   ============================================= */
+/* The lifted copy that follows the pointer: a little bigger, tilted, with a deep shadow */
+.lifted {
+  cursor: grabbing;
+  box-shadow: 8px 10px 0 var(--ink);
+  animation: lift 160ms var(--ease) forwards;
+}
+
+@keyframes lift {
+  to {
+    transform: rotate(2deg) scale(1.04);
+  }
+}
+
+/* While it glides back into place on drop, it straightens out */
+.settling .lifted {
+  animation: settle 260ms var(--ease) forwards;
+}
+
+@keyframes settle {
+  from {
+    transform: rotate(2deg) scale(1.04);
+  }
+  to {
+    transform: none;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+}
+
+/* The slot: where the card will land (and the gap it left). A dashed, empty outline */
+.board-card.slot,
+.cal-chip.slot {
+  background-color: color-mix(in srgb, var(--butter) 25%, transparent);
+  border: 2px dashed var(--ink);
+  box-shadow: none;
+}
+
+.board-card.slot > *,
+.cal-chip.slot > * {
+  visibility: hidden;   /* keeps the card's size, hides what's on it */
+}
+
+/* Just landed: a small bounce */
+.just-dropped {
+  animation: land 420ms var(--ease);
+}
+
+@keyframes land {
+  0% {
+    transform: scale(0.96);
+  }
+  45% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* While dragging, the "+ Add a task" buttons step back */
+.board-grid.dragging .board-add {
+  opacity: 0.3;
+}
+
+/* =============================================
+   BOARD EXTRAS
+   ============================================= */
+.board-bar-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* A round toggle chip (filter bar, Select) */
+.board-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  background-color: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease), border-color var(--fast) var(--ease);
+}
+
+.board-chip:hover {
+  color: var(--text);
+  border-color: var(--ink);
+}
+
+.board-chip.on {
+  color: var(--dark-ink);
+  background-color: var(--butter);
+  border-color: var(--ink);
+}
+
+.board-chip .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.board-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.board-clear {
+  display: inline;
+  margin: 0 0 0 4px;
+}
+
+/* The picked-cards bar: dark, like the Undo bar, so it stands out from the cards */
+.bulk-bar {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--paper);
+  background-color: var(--ink);
+  border-radius: var(--radius-md);
+  animation: rise-in var(--enter) var(--ease) backwards;
+}
+
+.bulk-bar strong {
+  margin-right: 4px;
+}
+
+.bulk-bar select,
+.bulk-bar input,
+.bulk-bar button {
+  height: 30px;
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dark-ink);
+  background-color: var(--butter);
+  border: none;
+  border-radius: var(--radius-sm);
+}
+
+.bulk-bar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bulk-bar .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.bulk-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bulk-bar .bulk-clear {
+  margin-left: auto;
+  color: var(--paper);
+  background-color: transparent;
+  border: 1.5px solid var(--paper);
+}
+
+/* A picked card: a thick butter ring */
+.board-card.picked {
+  outline: 3px solid var(--butter);
+  outline-offset: 2px;
+}
+
+/* Picked cards riding along with the one you drag: faded where they are */
+.board-card.riding {
+  opacity: 0.35;
+}
+
+/* "+2": how many more cards come along */
+.stack-count {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  min-width: 26px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--dark-ink);
+  background-color: var(--butter);
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+}
+
+.board-card.lifted {
+  position: relative;
+}
+
+/* SORTING a column */
+.sort-note {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.sort-button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: var(--muted);
+  border-radius: 6px;
+}
+
+.sort-button:hover,
+.sort-button[aria-expanded="true"] {
+  color: var(--text);
+  background-color: var(--paper);
+}
+
+.sort-button .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.sort-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  padding: 6px;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-small);
+  animation: rise-in 160ms var(--ease) backwards;
+}
+
+.sort-menu button {
+  height: 32px;
+  padding: 0 10px;
+  font-size: 14px;
+  text-align: left;
+  color: var(--text);
+  border-radius: 6px;
+}
+
+.sort-menu button:hover {
+  background-color: var(--paper);
+}
+
+.sort-menu button.on {
+  font-weight: 700;
+  color: var(--dark-ink);
+  background-color: var(--butter);
+}
+
+.board-empty {
+  margin: 8px 0;
+  font-size: 13px;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* =============================================
+   CALENDAR EXTRAS
+   ============================================= */
+/* The day number and its "+" button, side by side */
+.cal-day-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cal-day:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: -3px;
+}
+
+/* "+": shows on the day you point at (or are on with the keyboard) */
+.cal-plus {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--muted);
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease);
+}
+
+.cal-day:hover .cal-plus,
+.cal-day:focus-within .cal-plus {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .cal-plus {
+    opacity: 1;
+  }
+}
+
+.cal-plus:hover {
+  color: var(--dark-ink);
+  background-color: var(--butter);
+}
+
+.cal-plus .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.cal-add-input {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  margin-top: 2px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background-color: var(--card);
+  border: 1.5px solid var(--ink);
+  border-radius: 5px;
+  outline: none;
+}
+
+.cal-nodate .cal-add-input,
+.cal-daylist .cal-add-input,
+.cal-anytime .cal-add-input {
+  height: 34px;
+  font-size: 14px;
+}
+
+/* The lifted task on the calendar */
+.cal-chip.lifted {
+  width: 200px;
+  border-color: var(--ink);
+}
+
+/* JUMP TO A DATE: the title is a button; the date picker hides under it */
+.cal-jump {
+  position: relative;
+  margin-left: 8px;
+}
+
+.cal-jump-input {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* DAY VIEW: "Any time" on top, then half-hour rows */
+.cal-dayview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cal-anytime {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.cal-anytime h3,
+.agenda-day h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 16px;
+}
+
+.cal-anytime.over,
+.cal-slot.over {
+  background-color: color-mix(in srgb, var(--butter) 40%, var(--card));
+}
+
+.cal-times {
+  overflow: hidden;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.cal-slot {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  min-height: 30px;
+  padding: 3px 8px;
+  border-top: 1px dashed var(--line);
+  cursor: pointer;
+}
+
+.cal-slot.hour {
+  border-top: 1px solid var(--line);
+}
+
+.cal-slot:first-child {
+  border-top: none;
+}
+
+.cal-slot:hover {
+  background-color: var(--paper);
+}
+
+.cal-slot-label {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.cal-slot .cal-add-input {
+  grid-column: 2;
+}
+
+/* AGENDA: one block per day */
+.cal-agenda {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.agenda-day {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.agenda-day.today {
+  box-shadow: 4px 4px 0 var(--butter);
+}
+
+.agenda-day.overdue h3 {
+  color: var(--dark-ink);
+  background-color: var(--pink);
+  align-self: flex-start;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.agenda-day-name {
+  font: inherit;
+  text-align: left;
+}
+
+.agenda-day-name:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 760px) {
+  .board-bar-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .bulk-bar {
+    top: 4px;
+  }
+
+  .bulk-bar .bulk-clear {
+    margin-left: 0;
+  }
+
+  .cal-jump {
+    margin-left: 0;
+  }
+
+  .view-tabs.small {
+    display: inline-flex;
+    width: 100%;
+  }
+
+  .view-tabs.small button {
+    flex: 1;
+  }
+}
+
+/* =============================================
+   BOARD CARDS: three rows that line up on every card
+   tick box · name · star · ⋯   /   tags   /   facts
+   ============================================= */
+.card-name {
+  flex: 1;
+  min-width: 0;
+  padding-top: 1px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.card-name.done {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+/* Tags and facts both start where the name starts (after the 18px tick box + 8px gap) */
+.card-tags,
+.card-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-left: 26px;
+}
+
+/* THE ⋯ MENU */
+.card-menu {
+  position: relative;
+  flex-shrink: 0;
+  margin: -4px -4px 0 0;
+}
+
+.card-more {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: var(--muted);
+  border-radius: 6px;
+  opacity: 0.55;
+  transition: opacity var(--fast) var(--ease), background-color var(--fast) var(--ease);
+}
+
+.board-card:hover .card-more,
+.card-more:focus-visible,
+.card-more[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.card-more:hover,
+.card-more[aria-expanded="true"] {
+  color: var(--text);
+  background-color: var(--paper);
+}
+
+.card-more .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.card-menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 210px;
+  padding: 6px;
+  cursor: default;
+  background-color: var(--card);
+  border: var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-small);
+  animation: rise-in 140ms var(--ease) backwards;
+}
+
+.card-menu-list > button,
+.card-menu-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 14px;
+  text-align: left;
+  color: var(--text);
+  border-radius: 6px;
+}
+
+.card-menu-list > button:hover,
+.card-menu-date:hover {
+  background-color: var(--paper);
+}
+
+.card-menu-list .icon {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+
+.card-menu-list > button.danger:hover {
+  color: var(--dark-ink);
+  background-color: var(--pink);
+}
+
+.card-menu-date input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 4px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background-color: var(--paper);
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+}
+
+/* High · Medium · Low, side by side, each with its own color when chosen */
+.card-menu-priority {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px 4px 6px;
+  border-bottom: 1.5px solid var(--line);
+  margin-bottom: 2px;
+}
+
+.card-menu-priority button {
+  height: 28px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+}
+
+.card-menu-priority button:hover {
+  color: var(--text);
+  border-color: var(--ink);
+}
+
+.card-menu-priority button.on {
+  color: var(--dark-ink);
+  background-color: var(--pc);
+  border-color: var(--ink);
+}
+
+.card-menu-priority .priority-high {
+  --pc: var(--pink);
+}
+
+.card-menu-priority .priority-medium {
+  --pc: var(--butter);
+}
+
+.card-menu-priority .priority-low {
+  --pc: var(--mint);
+}
+
+/* =============================================
+   THE ADD BOX ("+ Add a task" on the board and calendar): a small card to write in
+   ============================================= */
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background-color: var(--card);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-md);
+  box-shadow: 3px 3px 0 var(--ink);
+  animation: rise-in 160ms var(--ease) backwards;
+}
+
+.composer-text {
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 2px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text);
+  background-color: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+}
+
+.composer-text::placeholder {
+  color: var(--muted);
+}
+
+/* What it understood ("Due Fri 6 Nov · High priority"), or a tip while it's empty */
+.composer-hint {
+  margin: 0;
+  padding-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1.5px dashed var(--line);
+}
+
+.composer-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.composer-buttons button {
+  height: 30px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+}
+
+.composer-cancel {
+  color: var(--muted);
+}
+
+.composer-cancel:hover {
+  color: var(--text);
+  background-color: var(--paper);
+}
+
+.composer-add {
+  color: var(--dark-ink);
+  background-color: var(--butter);
+  border: 1.5px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.composer-add:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+  cursor: default;
+}
+
+/* =============================================
+   THE TASK POP-UP: title, a grid of details, notes, steps, actions
+   ============================================= */
+.task-details {
+  width: min(600px, calc(100% - 32px));
+}
+
+/* The name row: a coloured priority stripe, the tick box, the name, the star */
+.details-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 10px 10px 14px;
+  background-color: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-left: 6px solid var(--pc, var(--ink));
+  border-radius: var(--radius-md);
+}
+
+.details-title.priority-high {
+  --pc: var(--pink);
+}
+
+.details-title.priority-medium {
+  --pc: var(--butter);
+}
+
+.details-title.priority-low {
+  --pc: var(--mint);
+}
+
+.details-tick {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin: 4px 0 0;
+  background-color: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.details-tick:checked {
+  background-color: var(--mint);
+}
+
+.details-tick:checked::after {
+  content: "✓";
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--dark-ink);
+}
+
+.details-name {
+  flex: 1;
+  min-width: 0;
+  field-sizing: content;   /* grows with the text (newer browsers) */
+  min-height: 34px;
+  padding: 4px 6px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.3;
+  color: var(--text);
+  background-color: transparent;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  outline: none;
+  resize: none;
+}
+
+.details-name:hover {
+  border-color: var(--line);
+}
+
+.details-name:focus {
+  background-color: var(--card);
+  border-color: var(--ink);
+}
+
+.details-name.done {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+/* Labels on the left, boxes on the right; two pairs per row on wide screens */
+.details-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 10px 12px;
+  margin: 16px 0 4px;
+}
+
+.details-grid label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.details-grid select,
+.details-grid input {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background-color: var(--card);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
+}
+
+.details-heading {
+  margin: 18px 0 8px;
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.task-details .steps .step {
+  padding-left: 0;
+}
+
+/* Delete on the left, Mark as done on the right */
+.details-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1.5px solid var(--line);
+}
+
+.details-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  border-radius: var(--radius-sm);
+}
+
+.details-delete:hover {
+  color: var(--dark-ink);
+  background-color: var(--pink);
+}
+
+.details-delete .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.details-done {
+  flex: 0 1 auto;
+  min-width: 160px;
+}
+
+@media (max-width: 760px) {
+  .details-grid {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
+  .details-grid select,
+  .details-grid input {
+    font-size: 16px;   /* stops iPhones from zooming in */
+  }
+
+  .details-name {
+    font-size: 18px;
   }
 }

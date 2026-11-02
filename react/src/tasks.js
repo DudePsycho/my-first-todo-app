@@ -64,14 +64,59 @@ export function todayString() {
   return dateString(new Date());
 }
 
+// The other way round: "2026-11-05" becomes a Date (midnight that day, on this computer)
+export function toDate(text) {
+  const [year, month, day] = text.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+// A date some days later (a minus: earlier). plusDays("2026-11-30", 1) = "2026-12-01"
+export function plusDays(text, days) {
+  const date = toDate(text);
+  date.setDate(date.getDate() + days);
+  return dateString(date);
+}
+
+// Settings (dark mode, the menu, your templates) are nice to remember, but not worth crashing over:
+// if the browser's storage is full or blocked, they just aren't remembered
+export function remember(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    // not remembered this time: that's fine
+  }
+}
+
+export function recall(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    return null;
+  }
+}
+
+// Is this text a real time of day, like "09:30" or "15:00"?
+function isRealTime(text) {
+  return typeof text === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(text);
+}
+
+// The time of a moment as "HH:MM", e.g. timeOf(new Date()) = the time right now, "15:04"
+export function timeOf(moment) {
+  return String(moment.getHours()).padStart(2, "0") + ":" + String(moment.getMinutes()).padStart(2, "0");
+}
+
+// A date for people: "2026-11-06" becomes "Fri 6 Nov"
+export function shortDay(date) {
+  return toDate(date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+}
+
 // Is it a real calendar date? "2026-99-99" has the right shape but isn't one:
 // JavaScript rolls it over to some other day, so it no longer matches the text
 function isRealDate(text) {
   if (typeof text !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(text)) {
     return false;
   }
-  const [year, month, day] = text.split("-").map(Number);
-  return dateString(new Date(year, month - 1, day)) === text;
+  return dateString(toDate(text)) === text;
 }
 
 // A new permanent id for a task: a long random code that never repeats.
@@ -128,7 +173,16 @@ export function cleanTask(task) {
     // A ticked repeating task remembers the id of the fresh copy it made (to untick exactly that one)
     nextId: typeof task.nextId === "string" ? task.nextId : "",
     // Monthly repeats: the day of the month it should land on (0 = just use the due date's day)
-    repeatDay: Number.isInteger(task.repeatDay) && task.repeatDay >= 1 && task.repeatDay <= 31 ? task.repeatDay : 0
+    repeatDay: Number.isInteger(task.repeatDay) && task.repeatDay >= 1 && task.repeatDay <= 31 ? task.repeatDay : 0,
+    // The day it was finished, for the History. Unfinished tasks, and tasks finished
+    // before History existed, have none: ""
+    doneDate: task.done === true && isRealDate(task.doneDate) ? task.doneDate : "",
+    // A reminder time like "15:00" ("" = no reminder), and the day it last went off
+    // (so it goes off only once on its day)
+    remindAt: isRealTime(task.remindAt) ? task.remindAt : "",
+    remindedOn: isRealDate(task.remindedOn) ? task.remindedOn : "",
+    // When it was made (for "Newest first" on the board). Tasks from before this have 0
+    createdAt: Number.isFinite(task.createdAt) && task.createdAt > 0 ? task.createdAt : 0
   };
 }
 
@@ -150,8 +204,7 @@ export function findLinks(text) {
 // If that's still in the past, keep stepping until it's today or later
 export function nextDueDate(task) {
   const today = todayString();
-  const [year, month, day] = (task.dueDate || today).split("-").map(Number);
-  const date = new Date(year, month - 1, day);
+  const date = toDate(task.dueDate || today);
   do {
     if (task.repeat === "monthly") {
       // Go to the 1st of next month, then to the wanted day, or the month's last day if
@@ -200,10 +253,32 @@ const REPEAT_WORDS = {
 };
 const REPEAT_PATTERN = new RegExp("(^|\\s)(" + Object.keys(REPEAT_WORDS).join("|") + ")(?=\\s|$)", "i");
 
+// A reminder time: "at 3pm", "at 3:30pm", "at 15:30" or "at 9" (= 09:00)
+const TIME_PATTERN = /(^|\s)at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?(?=\s|$)/i;
+
+// The pieces of a TIME_PATTERN match turned into "HH:MM", or "" if it isn't a real time
+function timeFromMatch(match) {
+  let hours = Number(match[2]);
+  const minutes = match[3] || "00";
+  const half = (match[4] || "").toLowerCase();
+  if (half !== "" && (hours < 1 || hours > 12)) {
+    return "";   // "at 15pm" isn't a time
+  }
+  if (half === "pm" && hours !== 12) {
+    hours = hours + 12;
+  }
+  if (half === "am" && hours === 12) {
+    hours = 0;   // 12am is midnight
+  }
+  const time = String(hours).padStart(2, "0") + ":" + minutes;
+  return isRealTime(time) ? time : "";
+}
+
 export function parseQuickAdd(text) {
   let priority = "";
   let dueDate = "";
   let repeat = "";
+  let remindAt = "";
 
   // !high, !medium or !low (with the space before it)
   const priorityMatch = text.match(/\s*!(high|medium|low)\b/i);
@@ -226,8 +301,15 @@ export function parseQuickAdd(text) {
     text = text.replace(repeatMatch[0], " ");
   }
 
+  // at 3pm, at 15:30...
+  const timeMatch = text.match(TIME_PATTERN);
+  if (timeMatch && timeFromMatch(timeMatch) !== "") {
+    remindAt = timeFromMatch(timeMatch);
+    text = text.replace(timeMatch[0], " ");
+  }
+
   // Squash the gaps left behind into single spaces
-  return { text: text.replace(/\s+/g, " ").trim(), priority, dueDate, repeat };
+  return { text: text.replace(/\s+/g, " ").trim(), priority, dueDate, repeat, remindAt };
 }
 
 // WORD COMPLETION: the rest of a date word you've started at the end of the text.
@@ -241,4 +323,94 @@ export function suggestDateWord(text) {
   const typed = lastWord[2].toLowerCase();
   const fits = DATE_WORDS.filter((word) => word.startsWith(typed) && word !== typed);
   return fits.length === 1 ? fits[0].slice(typed.length) : "";
+}
+
+// STREAKS: how many days in a row you finished at least one task.
+// "current" counts back from today; if nothing is finished yet today, it counts back from
+// yesterday (today is still open). "best" is the longest run in your history
+export function streaks(doneTasks) {
+  // Every day with at least one finished task, oldest first ("YYYY-MM-DD" text sorts like dates)
+  const days = [];
+  doneTasks.forEach((task) => {
+    if (task.doneDate !== "" && !days.includes(task.doneDate)) {
+      days.push(task.doneDate);
+    }
+  });
+  days.sort();
+
+  // Best: walk through the days; a day right after the one before makes the run longer
+  let best = 0;
+  let run = 0;
+  days.forEach((day, index) => {
+    run = index > 0 && plusDays(days[index - 1], 1) === day ? run + 1 : 1;
+    best = Math.max(best, run);
+  });
+
+  // Current: start at today (or yesterday) and count back while every day has a finished task
+  let back = days.includes(todayString()) ? 0 : 1;
+  let current = 0;
+  while (days.includes(plusDays(todayString(), -back))) {
+    current = current + 1;
+    back = back + 1;
+  }
+  return { current, best };
+}
+
+// DOG LEVELS: the dog grows as you finish tasks (every finished task counts, ever).
+// "at" is how many finished tasks reach that level
+export const LEVELS = [
+  { name: "Puppy", at: 0 },
+  { name: "Good pup", at: 10 },
+  { name: "Trail dog", at: 25 },
+  { name: "Pack leader", at: 50 },
+  { name: "Best in show", at: 100 }
+];
+
+// The level for a number of finished tasks: its place in LEVELS (0 = Puppy)
+export function dogLevel(finished) {
+  let level = 0;
+  LEVELS.forEach((step, index) => {
+    if (finished >= step.at) {
+      level = index;
+    }
+  });
+  return level;
+}
+
+// How far along the way to the next level: 0 (just reached this one) to 1 (there).
+// At the top level there's nowhere further to go: always 1
+export function levelProgress(finished) {
+  const level = dogLevel(finished);
+  const next = LEVELS[level + 1];
+  if (!next) {
+    return 1;
+  }
+  return (finished - LEVELS[level].at) / (next.at - LEVELS[level].at);
+}
+
+// FORMATTED NOTES are saved as HTML ("<p>Buy <strong>milk</strong></p>"). Notes from before
+// formatting existed are plain text. A formatted note always starts with a tag
+function isFormatted(notes) {
+  return notes.trim().startsWith("<");
+}
+
+// An old plain note, turned into formatted text: each line becomes a paragraph.
+// & < > are written as codes first, so text like "a < b" stays text
+export function notesToHtml(notes) {
+  if (notes === "" || isFormatted(notes)) {
+    return notes;
+  }
+  const safe = notes.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return safe.split("\n").map((line) => "<p>" + line + "</p>").join("");
+}
+
+// Just the words of a note (for search and for finding links), without the formatting.
+// The tags become spaces, so words from two paragraphs don't run together. DOMParser
+// reads HTML WITHOUT running anything in it, and turns codes like &amp; back into &
+export function notesText(notes) {
+  if (!isFormatted(notes)) {
+    return notes;
+  }
+  const words = notes.replace(/<[^>]*>/g, " ");
+  return new DOMParser().parseFromString(words, "text/html").documentElement.textContent.replace(/\s+/g, " ").trim();
 }

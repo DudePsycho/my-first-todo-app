@@ -5,7 +5,7 @@
 // In React it's the other way round: this list is the truth, and the page is drawn from it.
 // Change the list, and React redraws whatever changed by itself.
 import { useEffect, useState } from "react";
-import { cleanTask, monthDay, newId, nextDueDate } from "./tasks.js";
+import { cleanTask, monthDay, newId, nextDueDate, todayString } from "./tasks.js";
 
 // Every task has a permanent id (saved with it), so React, Undo, repeats and Restore always
 // know exactly which task is which. Two saved tasks must never share one: a repeat gets a new id
@@ -70,8 +70,11 @@ export function useTasks() {
   // RULE: never change the list itself. Always make a NEW list with the change in it.
   // That's how React notices something changed (it compares the old list with the new one)
 
-  function addTask(text, dueDate, priority, status, repeat = "", notes = "", steps = []) {
-    const task = { text, done: false, dueDate, priority, status, focus: false, repeat, notes, steps, id: newId(), nextId: "", repeatDay: 0 };
+  function addTask(text, dueDate, priority, status, repeat = "", notes = "", steps = [], remindAt = "") {
+    const task = {
+      text, done: false, dueDate, priority, status, focus: false, repeat, notes, steps,
+      id: newId(), nextId: "", repeatDay: 0, doneDate: "", remindAt, remindedOn: "", createdAt: Date.now()
+    };
     // setTasks with a function: "take the newest list and give back a new one"
     setTasks((old) => [...old, task]);   // [...old, task] = all the old tasks, then the new one
   }
@@ -88,6 +91,10 @@ export function useTasks() {
         if (updated.dueDate !== task.dueDate || updated.repeat !== task.repeat) {
           updated.repeatDay = 0;
         }
+        // A new date or reminder time: the reminder can go off again
+        if (updated.dueDate !== task.dueDate || updated.remindAt !== task.remindAt) {
+          updated.remindedOn = "";
+        }
         return updated;
       })
     );
@@ -98,7 +105,8 @@ export function useTasks() {
     setTasks(function (old) {
       const task = old.find((task) => task.id === id);
       const others = old.filter((task) => task.id !== id);
-      const changed = { ...task, done: !task.done };
+      // Ticked: remember today as its "done on" date. Unticked: it isn't done, so no date
+      const changed = { ...task, done: !task.done, doneDate: task.done ? "" : todayString() };
       if (!task.repeat) {
         return [...others, changed];
       }
@@ -113,7 +121,9 @@ export function useTasks() {
           dueDate: nextDueDate(task),
           focus: false,
           steps: task.steps.map((step) => ({ ...step, done: false })),
-          repeatDay: task.repeat === "monthly" ? monthDay(task) : 0
+          repeatDay: task.repeat === "monthly" ? monthDay(task) : 0,
+          remindedOn: "",   // same reminder time, on the new date
+          createdAt: Date.now()
         };
         return [...others, { ...changed, nextId: copy.id }, copy];
       }
@@ -133,10 +143,25 @@ export function useTasks() {
     setTasks((old) => [...old.slice(0, index), task, ...old.slice(index)]);
   }
 
+  // Move a task to just before (or after) another one: the board's card order, which the
+  // list follows too. The task is taken out, then put back in next to the target
+  function moveTask(id, targetId, after) {
+    setTasks(function (old) {
+      const task = old.find((task) => task.id === id);
+      const others = old.filter((task) => task.id !== id);
+      const index = others.findIndex((task) => task.id === targetId);
+      if (!task || index === -1) {
+        return old;
+      }
+      const place = after ? index + 1 : index;
+      return [...others.slice(0, place), task, ...others.slice(place)];
+    });
+  }
+
   // Add many tasks at once (for Restore). They must already be checked by cleanTask
   function addTasks(newTasks) {
     setTasks((old) => uniqueIds([...old, ...newTasks]));
   }
 
-  return { tasks, storageProblem, addTask, updateTask, toggleDone, deleteTask, restoreTask, addTasks };
+  return { tasks, storageProblem, addTask, updateTask, toggleDone, deleteTask, restoreTask, addTasks, moveTask };
 }

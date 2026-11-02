@@ -6,11 +6,11 @@ import { useEffect, useRef, useState } from "react";
 import Dog from "./Dog.jsx";
 import Icon from "./Icon.jsx";
 import { DueDate } from "./TaskItem.jsx";
-import { dateString, findTags } from "./tasks.js";
+import { findTags, plusDays, todayString } from "./tasks.js";
 
 // The frame every question shares: the dog, the step label, the question, the answer buttons.
 // answers is a list like: [{ label: "Yes", main: true, action: someFunction }]
-function CoachStep({ label, question, answers, onClose, children }) {
+export function CoachStep({ label, question, answers, onClose, children }) {
   return (
     <>
       <div className="coach-top">
@@ -306,9 +306,7 @@ function WeeklyReview({ tasks, actions, onClose, onSortInbox }) {
 
   // STEP 3: dates coming up in the next 2 weeks (and anything overdue), earliest first
   if (index === 2) {
-    const later = new Date();
-    later.setDate(later.getDate() + 14);
-    const inTwoWeeks = dateString(later);
+    const inTwoWeeks = plusDays(todayString(), 14);
     const comingUp = todo
       .filter((task) => task.dueDate !== "" && task.dueDate <= inTwoWeeks)
       .sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1));

@@ -15,7 +15,9 @@ function BoneShape() {
 }
 
 // withBone: the small dog at the top of the menu holds a bone (it drops it when the menu shrinks)
-export default function Dog({ withBone }) {
+// level: the dog's level (see LEVELS in tasks.js). From level 1 its collar has a tag,
+// a different color for each level
+export default function Dog({ withBone, level = 0 }) {
   return (
     <svg className="dog" viewBox="0 0 130 100" aria-hidden="true">
       <path className="dog-tail" d="M30 52 C 18 46, 14 34, 20 24" />
@@ -26,6 +28,7 @@ export default function Dog({ withBone }) {
       <line className="dog-leg leg-b" x1="70" y1="66" x2="69" y2="90" />
       <line className="dog-leg leg-a" x1="78" y1="63" x2="83" y2="88" />
       <rect className="dog-collar" x="72" y="38" width="9" height="22" rx="4.5" transform="rotate(-20 76.5 49)" />
+      {level > 0 && <circle className={"dog-tag tag-level-" + level} cx="80" cy="62" r="5" />}
       <circle className="dog-fill" cx="90" cy="34" r="18" />
       <ellipse className="dog-fill" cx="106" cy="40" rx="11" ry="8" />
       <circle className="dog-nose" cx="116" cy="37" r="3.5" />

@@ -1,6 +1,6 @@
 # 🐶 Things to do
 
-**Version 0.6** · My first ever coding project: a to-do list app, built from zero knowledge with the help of [Claude Code](https://claude.com/claude-code). First in plain HTML, CSS and JavaScript, and now rebuilt in **React**.
+**Version 1.0** · My first ever coding project: a to-do list app, built from zero knowledge with the help of [Claude Code](https://claude.com/claude-code). First in plain HTML, CSS and JavaScript, and now rebuilt in **React**.
 
 ### 👉 [**Try it live here**](https://dudepsycho.github.io/my-first-todo-app/). It works on your phone too!
 
@@ -25,6 +25,20 @@ Before this project I had never written a line of code. I didn't know what HTML 
 - 🗓️ **Overdue, Due today and Upcoming views** in the menu, earliest date first
 - 🔁 **Repeating tasks:** daily, weekly or monthly. Tick one and a fresh copy appears with the next date
 - ↩️ **Undo after delete:** a bar slides up for 10 seconds, and the task comes back exactly where it was
+- 📝 **Notes with formatting** inside every task: headings, sizes, bold, colours, highlights, bullet, numbered and check lists, and tables. Links in a note stay clickable
+- 🐾 **Steps:** break a task into a small checklist, with a progress bar on the card
+- 🔔 **Reminders:** give a task a time (or type `at 3pm`). When it's due, a bar pops up with Done and Snooze, plus a browser notification if you allow it
+
+**Three ways to see your tasks**
+- 📋 **List:** the classic view, with Inbox, Next, Waiting for, Someday and Done
+- 🗂️ **Board:** cards in columns. Group them by list, priority or due date, drag them between columns and up and down, add a task right in a column, pick several cards to move together, sort a column, filter, set a limit per column, and split the board into rows per #project
+- 📅 **Calendar:** Month, Week, Day (by reminder time) and Agenda. Drag tasks between days or onto a time, keep undated tasks in a side panel, and see repeating tasks on the days they come back. The arrow keys move between days
+- Dragging feels physical: the card lifts, a slot opens where it will land, and it settles in with a little bounce. It all works with the keyboard and screen readers too
+
+**Progress, kindly**
+- 📈 **History:** what you finished, day by day, with a chart of the last 7 days (and the weeks before)
+- 🔥 **Streaks and dog levels:** days in a row, your best run, and a dog that grows from Puppy to Best in show, with a collar tag and a progress bar in the level's colour. Only facts, never pressure, and one switch turns it all off
+- 🧩 **Templates:** one click adds a whole set of tasks (a morning routine, packing for a trip). Make your own, edit them, or save a #project as a template
 
 **The dog** 🐶
 - **Pet it for a real tip** about your tasks: what's overdue, what's due today, how many are waiting in your inbox
@@ -76,13 +90,21 @@ The same app, built two ways:
 
 | File (in `react/src/`) | What it does |
 |---|---|
-| `App.jsx` | The app's memory (filter, search, dark mode, the dog) and the main page |
+| `App.jsx` | The app's memory (filter, search, view, dark mode, the dog, reminders) and the main page |
 | `useTasks.js` | The list of tasks, and the only functions allowed to change it. It saves by itself |
-| `TaskItem.jsx` | One task card |
+| `TaskItem.jsx` | One task card in the list, with its notes and steps |
+| `Board.jsx` | The board: columns, cards, dragging, picking several cards, sorting and filters |
+| `Calendar.jsx` | The calendar: month, week, day and agenda |
+| `TaskDetails.jsx` | The pop-up that opens a task from the board or the calendar |
+| `TaskComposer.jsx` | The "+ Add a task" box on the board and the calendar |
+| `NotesEditor.jsx` | The notes box with its formatting toolbar |
+| `History.jsx` | The History page: the chart, streaks and the dog's level |
+| `Templates.jsx` | Templates: sets of tasks added in one click |
 | `Sidebar.jsx` | The menu |
 | `Coach.jsx` | The dog coach |
 | `Dog.jsx`, `Lhasa.jsx`, `Icon.jsx` | The two dog drawings and the line icons |
-| `tasks.js` | Small helpers: finding tags, picking tag colors, checking tasks, reading Quick Add words, working out the next date of a repeating task |
+| `tasks.js` | Small helpers: dates, tags and their colors, checking tasks, reading Quick Add words, repeats, streaks and levels |
+| `dragFeel.js`, `usePhone.js` | How dragging feels, and noticing a phone-sized screen |
 | `style.css` | How it looks |
 
 **The plain version (`html/`)** is three files:
@@ -215,9 +237,36 @@ I wrote down where the app is going as a page of its own: a trail with a stop fo
 
 > **Learned:** that a plan is easier to follow when you can see it.
 
+### Step 23: Notes, steps and reminders 📝
+Tasks got room for details: notes (later with a full formatting toolbar), steps that tick off one by one, and reminders that pop up at the right time. The data got sturdier too: every task now has a permanent id, and a damaged save is kept aside instead of being lost.
+
+> **Learned:** that a real app needs permanent ids, `setInterval` (checking the time every few seconds), browser notifications, and using a well-tested library for the hard part (a text editor) instead of writing my own.
+
+### Step 24: Progress, kindly 📈
+A History page with a chart, streaks, and a dog that grows as you finish tasks. I kept one rule: show facts, never pressure. There's a switch to turn it all off.
+
+> **Learned:** grouping by day, drawing a simple chart with plain HTML and CSS, and that motivation features need a gentle touch.
+
+### Step 25: Templates 🧩
+One click adds a whole set of tasks. You can make your own, edit them, and save a project as a template.
+
+> **Learned:** keeping a second kind of saved data next to the tasks, and checking it as carefully as the tasks.
+
+### Step 26: A board and a calendar 🗂️📅
+The biggest step since React: two new ways to see the same tasks. On the board you drag cards between columns; on the calendar you drag tasks between days. I looked at how other boards and calendars work, then built my own in the app's style. I tested the dragging with a real mouse in two different browsers, and with the keyboard.
+
+> **Learned:** drag and drop with a library (dnd-kit), making it work with the keyboard and screen readers, that different browsers can behave differently, and why testing like a real person catches what other tests miss.
+
+### Step 27: Version 1.0 ✨
+Before calling it 1.0, I cleaned the code: removed what was no longer used, merged helpers that did the same job (one way to work with dates, one way to notice a phone), merged styles that were written twice, and checked every screen again on phone sizes.
+
+> **Learned:** that finishing is its own skill, and that less code is easier to understand, test and fix.
+
 ---
 
 ## 🏷️ Version history
+
+**v1.0** (2 November 2026): **Board** and **Calendar** views (month, week, day and agenda) with drag and drop, **task notes** with formatting, **steps**, **reminders**, **History** with a weekly chart, **streaks and dog levels**, and **templates**. Plus a cleaner codebase and a full check on phones.
 
 **v0.6** (1 November 2026): **Smart Quick Add** (type a day, a priority or a repeat right in the task), a **Lhasa Apso helper** that teaches the tricks, **Undo after delete**, **Overdue / Due today / Upcoming** views, **repeating tasks**, and a **roadmap page**.
 
@@ -245,6 +294,7 @@ I wrote down where the app is going as a page of its own: a trail with a stop fo
 ## 🛠️ Built with
 
 - [React](https://react.dev/) and [Vite](https://vite.dev/) (the current version)
+- [TipTap](https://tiptap.dev/) for the notes editor, and [dnd-kit](https://dndkit.com/) for drag and drop (both MIT license)
 - HTML, CSS and JavaScript (the first version, no frameworks)
 - [Claude Code](https://claude.com/claude-code) as my coding teacher and pair programmer
 - Fonts from [Google Fonts](https://fonts.google.com/): Bricolage Grotesque, Geist and Patrick Hand
@@ -256,4 +306,4 @@ I wrote down where the app is going as a page of its own: a trail with a stop fo
 
 ---
 
-*Started 31 October 2026 · Version 0.6 on 1 November 2026 · Made with patience, a lot of questions, and one very good dog.* 🐾
+*Started 31 October 2026 · Version 1.0 on 2 November 2026 · Made with patience, a lot of questions, and one very good dog.* 🐾

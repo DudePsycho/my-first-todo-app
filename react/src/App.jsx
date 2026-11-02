@@ -6,13 +6,20 @@
 // React runs App() again, and the counts, filters and lists are simply worked out fresh
 import { useEffect, useRef, useState } from "react";
 import { useTasks } from "./useTasks.js";
-import { LIST_NAMES, LIST_FILTERS, REPEAT_NAMES, findTags, cleanTask, parseQuickAdd, suggestDateWord, todayString, dateString, nextDueDate } from "./tasks.js";
+import { LIST_NAMES, LIST_FILTERS, REPEAT_NAMES, findTags, cleanTask, parseQuickAdd, suggestDateWord, todayString, dateString, plusDays, nextDueDate, shortDay, notesText, streaks, dogLevel, remember, recall, timeOf } from "./tasks.js";
 import Sidebar from "./Sidebar.jsx";
+import History from "./History.jsx";
 import TaskItem, { TaskText, StepList } from "./TaskItem.jsx";
 import Lhasa from "./Lhasa.jsx";
 import Coach from "./Coach.jsx";
+import Templates from "./Templates.jsx";
+import Board from "./Board.jsx";
+import Calendar from "./Calendar.jsx";
+import TaskDetails from "./TaskDetails.jsx";
 import Dog from "./Dog.jsx";
 import Icon from "./Icon.jsx";
+import NotesEditor from "./NotesEditor.jsx";
+import { usePhone } from "./usePhone.js";
 
 // The ink strip at the top: things we say to dogs, turned into to-do tips
 // The tricks the Lhasa Apso teaches, one at a time (tap it for the next)
@@ -62,29 +69,6 @@ function plural(count, word) {
   return count + " " + word + (count === 1 ? "" : "s");
 }
 
-// Settings (dark mode, the menu) are nice to remember, but not worth crashing over:
-// if the browser's storage is full or blocked, they just aren't remembered
-function remember(key, value) {
-  try {
-    localStorage.setItem(key, value);
-  } catch (error) {
-    // not remembered this time: that's fine
-  }
-}
-
-function recall(key) {
-  try {
-    return localStorage.getItem(key);
-  } catch (error) {
-    return null;
-  }
-}
-
-// A due date for people: "2026-11-06" becomes "Fri 6 Nov"
-function shortDay(date) {
-  return new Date(date + "T00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
-}
-
 // What the dog says when you pet it: something useful about your tasks right now.
 // It collects every tip that's true at the moment, and picks one of them
 function dogTip(todo, done) {
@@ -119,11 +103,6 @@ function dogTip(todo, done) {
   return tips[Math.floor(Math.random() * tips.length)];
 }
 
-// True on phone-sized screens
-function isPhone() {
-  return window.matchMedia("(max-width: 760px)").matches;
-}
-
 // Count the UNFINISHED tasks for each tag of one kind, sorted by name:
 // [{ tag: "#garden", count: 2 }, { tag: "#trip", count: 1 }]
 function countTags(todo, symbol) {
@@ -154,6 +133,53 @@ function emptyMessage(search, filter) {
   return messages[filter] || "No tasks match this filter";
 }
 
+// REMINDERS can also show as a notification from the browser (in another tab too), if you allow it.
+// The browser asks you once, the first time you set a reminder
+function askToNotify() {
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+}
+
+function notify(text) {
+  try {
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Reminder", { body: text });
+    }
+  } catch (error) {
+    // some phones only allow notifications from installed apps: the bar in the app is enough
+  }
+}
+
+// "15:30" as minutes since midnight (930), to see how late a reminder is
+function minutesOf(time) {
+  return Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+}
+
+// The reminder bar, just above where the Undo bar shows. The same "popover" trick as UndoBar
+function ReminderBar({ reminder, onDone, onSnooze, onClose }) {
+  const bar = useRef(null);
+  useEffect(function () {
+    if (bar.current.showPopover) {
+      bar.current.showPopover();
+    }
+  }, []);
+  return (
+    <div className="undo-bar reminder-bar" popover="manual" ref={bar} role="alert">
+      <Icon name="bell" />
+      <span className="undo-text">
+        {reminder.missed && <span>Missed at {reminder.task.remindAt}:</span>}
+        <span className="undo-name">{reminder.task.text}</span>
+      </span>
+      <button className="undo-button" onClick={onDone}>Done</button>
+      <button className="undo-button snooze-button" onClick={onSnooze}>Snooze 10 min</button>
+      <button className="icon-button reminder-close" aria-label="Close the reminder" title="Close" onClick={onClose}>
+        <Icon name="x" />
+      </button>
+    </div>
+  );
+}
+
 // The "Deleted ‘…’ Undo" bar at the bottom. It's a "popover", which the browser always
 // draws on top of everything, even the dog coach's pop-up (older browsers show a normal bar)
 function UndoBar({ text, onUndo }) {
@@ -172,13 +198,14 @@ function UndoBar({ text, onUndo }) {
 }
 
 export default function App() {
-  const { tasks, storageProblem, addTask, updateTask, toggleDone, deleteTask, restoreTask, addTasks } = useTasks();
+  const { tasks, storageProblem, addTask, updateTask, toggleDone, deleteTask, restoreTask, addTasks, moveTask } = useTasks();
 
   // ---------- MEMORY: everything that can change on the page ----------
   const [newText, setNewText] = useState("");             // the "What's on your mind?" box
   const [newDate, setNewDate] = useState("");
   const [newPriority, setNewPriority] = useState("medium");
   const [newRepeat, setNewRepeat] = useState("");
+  const [newRemind, setNewRemind] = useState("");          // a reminder time, like "15:00"
   const [newNotes, setNewNotes] = useState("");           // notes for the task being written
   const [newNotesOpen, setNewNotesOpen] = useState(false);
   const [newSteps, setNewSteps] = useState([]);           // steps for the task being written
@@ -186,15 +213,25 @@ export default function App() {
   const [filter, setFilter] = useState("all");            // "all", "inbox", "#garden"...
   const [search, setSearch] = useState("");
   const [isDark, setIsDark] = useState(() => recall("darkMode") === "true");
+  const phone = usePhone();   // true on phone-sized screens (and it follows the screen)
   // Menu: shrunk on phones, otherwise the way you left it (open the first time)
-  const [menuOpen, setMenuOpen] = useState(() => !isPhone() && recall("menuOpen") !== "false");
+  const [menuOpen, setMenuOpen] = useState(() => !phone && recall("menuOpen") !== "false");
   const [coach, setCoach] = useState(null);               // null (closed), or { mode: "sort" | "review", key }
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  // How the tasks are shown: "list", "board" or "calendar" (remembered)
+  const [view, setView] = useState(() => recall("view") || "list");
+  const [openTaskId, setOpenTaskId] = useState(null);   // the task in the pop-up (board, calendar)
+  // Streaks and dog levels can be switched off (on the History page). On the first time
+  const [rewardsOn, setRewardsOn] = useState(() => recall("rewards") !== "false");
 
   // The dog: its speech bubble, its hop, and the running dogs and paw prints on screen
   const [bubble, setBubble] = useState({ text: "", show: false });
   const [runners, setRunners] = useState([]);
   const [paws, setPaws] = useState([]);
   const bubbleTimer = useRef();   // useRef: memory that does NOT redraw the page when it changes
+
+  // REMINDER: the one showing right now: null, or { task, missed }
+  const [reminder, setReminder] = useState(null);
 
   // UNDO: the last deleted task and where it was, for 10 seconds (null = nothing to undo)
   const [undo, setUndo] = useState(null);
@@ -225,23 +262,27 @@ export default function App() {
   );
 
   // When the screen becomes phone-sized (a phone turned upright, a window made narrow),
-  // shrink the menu, so the open menu doesn't suddenly cover the tasks.
-  // The [] means: set this up once. The function it returns cleans up if App ever goes away
-  useEffect(function () {
-    const phoneScreen = window.matchMedia("(max-width: 760px)");
-    function screenChanged() {
-      if (phoneScreen.matches) {
+  // shrink the menu, so the open menu doesn't suddenly cover the tasks
+  useEffect(
+    function () {
+      if (phone) {
         setMenuOpen(false);
       }
-    }
-    phoneScreen.addEventListener("change", screenChanged);
-    return () => phoneScreen.removeEventListener("change", screenChanged);
-  }, []);
+    },
+    [phone]
+  );
+
+  useEffect(
+    function () {
+      remember("rewards", rewardsOn);
+    },
+    [rewardsOn]
+  );
 
   // Remember the menu choice on bigger screens (phones always start with the menu shrunk)
   useEffect(
     function () {
-      if (!isPhone()) {
+      if (!phone) {
         remember("menuOpen", menuOpen);
       }
     },
@@ -255,9 +296,7 @@ export default function App() {
   // The date views. Each one answers "does this due date belong here?"
   // Dates are "YYYY-MM-DD" text, so < and > compare them like real dates
   const todayDate = todayString();
-  const weekAhead = new Date();
-  weekAhead.setDate(weekAhead.getDate() + 7);
-  const inAWeek = dateString(weekAhead);
+  const inAWeek = plusDays(todayDate, 7);
   const dateViews = {
     overdue: (date) => date !== "" && date < todayDate,   // "" (no date) would count as "earlier"
     today: (date) => date === todayDate,
@@ -280,6 +319,10 @@ export default function App() {
     counts[view] = todo.filter((task) => dateViews[view](task.dueDate)).length;
   });
 
+  // Days in a row and the dog's level, from the finished tasks
+  const streak = streaks(done);
+  const level = dogLevel(done.length);
+
   const projects = countTags(todo, "#");
   const contexts = countTags(todo, "@");
   const isTagFilter = filter[0] === "#" || filter[0] === "@";
@@ -299,7 +342,7 @@ export default function App() {
   const searchWord = search.trim().toLowerCase();
   function isVisible(task) {
     // Search looks in the task text, its notes and its steps
-    const allText = [task.text, task.notes].concat(task.steps.map((step) => step.text)).join(" ");
+    const allText = [task.text, notesText(task.notes)].concat(task.steps.map((step) => step.text)).join(" ");
     if (!allText.toLowerCase().includes(searchWord)) {
       return false;
     }
@@ -329,14 +372,17 @@ export default function App() {
   }
 
   // Which sections to show. When searching or using a narrow filter, hide an empty section
+  // (History is its own page: it shows neither section. Neither do the board and calendar)
+  const isHistory = filter === "history";
+  const isListView = view === "list" && !isHistory;
   const isNarrowed = searchWord !== "" || !["all", "active", "done"].includes(filter);
-  let showTodo = filter !== "done";
-  let showDone = filter !== "active" && !LIST_FILTERS.includes(filter) && !dateViews[filter];
+  let showTodo = filter !== "done" && isListView;
+  let showDone = filter !== "active" && !LIST_FILTERS.includes(filter) && !dateViews[filter] && isListView;
   if (isNarrowed) {
     showTodo = showTodo && visibleTodo.length > 0;
     showDone = showDone && visibleDone.length > 0;
   }
-  const showNoResults = isNarrowed && !showTodo && !showDone;
+  const showNoResults = isNarrowed && !showTodo && !showDone && isListView;
 
   // ---------- THE DOG ----------
   // The dog talks for 2.2 seconds (longer for important news, e.g. dogSays("...", 8000))
@@ -393,6 +439,52 @@ export default function App() {
     dogSays(left === 0 ? "Done. Nothing left to do" : "Done. " + plural(left, "task") + " left");
   }
 
+  // ---------- REMINDERS ----------
+  // Every 15 seconds (and whenever the tasks change), look for a reminder that's due: a task due
+  // TODAY, not done, whose time has come, that hasn't gone off yet today. That includes ones
+  // missed while the app was closed (earlier days' are skipped). One at a time: the next one
+  // waits until the bar is closed
+  useEffect(
+    function () {
+      if (reminder) {
+        return;
+      }
+      function check() {
+        const today = todayString();
+        const now = timeOf(new Date());
+        const due = tasks.find((task) => !task.done && task.remindAt !== "" && task.dueDate === today && task.remindedOn !== today && task.remindAt <= now);
+        if (!due) {
+          return;
+        }
+        updateTask(due.id, { remindedOn: today });   // so it doesn't go off again
+        setReminder({ task: due, missed: minutesOf(now) - minutesOf(due.remindAt) >= 5 });
+        notify(due.text);
+      }
+      check();
+      const timer = setInterval(check, 15000);
+      return () => clearInterval(timer);   // stop the old timer before a new one starts
+    },
+    [tasks, reminder]
+  );
+
+  // The reminder's buttons. The task may have changed since the bar opened, so use the newest copy
+  function reminderDone() {
+    const task = tasks.find((task) => task.id === reminder.task.id);
+    if (task && !task.done) {
+      toggleDone(task.id);
+      celebrate(task);
+    }
+    setReminder(null);
+  }
+
+  // Snooze: the same reminder, 10 minutes from now (after midnight, that's tomorrow's date)
+  function reminderSnooze() {
+    const later = new Date(Date.now() + 10 * 60 * 1000);
+    updateTask(reminder.task.id, { dueDate: dateString(later), remindAt: timeOf(later) });
+    dogSays("Snoozed until " + timeOf(later));
+    setReminder(null);
+  }
+
   // ---------- WHAT HAPPENS WHEN YOU CLICK THINGS ----------
   // ---------- SMART QUICK ADD (worked out fresh on every key you type) ----------
   const quick = parseQuickAdd(newText);           // the text, plus a typed priority and date
@@ -409,6 +501,9 @@ export default function App() {
   }
   if (quick.repeat) {
     found.push("Repeats " + quick.repeat);
+  }
+  if (quick.remindAt) {
+    found.push("Remind at " + quick.remindAt);
   }
 
   // Finish the word you started: "sun" becomes "sunday"
@@ -430,12 +525,18 @@ export default function App() {
     if (quick.text === "") {
       return;   // nothing left to add (e.g. only "!high" was typed)
     }
-    // Typed extras win; otherwise use the date picker and the dropdown
-    addTask(quick.text, quick.dueDate || newDate, quick.priority || newPriority, "inbox", quick.repeat || newRepeat, newNotes, newSteps);
+    // Typed extras win; otherwise use the pickers. A reminder needs a day: with no date, it's today
+    const remindAt = quick.remindAt || newRemind;
+    const dueDate = quick.dueDate || newDate || (remindAt ? todayDate : "");
+    addTask(quick.text, dueDate, quick.priority || newPriority, "inbox", quick.repeat || newRepeat, newNotes, newSteps, remindAt);
+    if (remindAt) {
+      askToNotify();
+    }
     dogSays("Added to Inbox. " + plural(counts.inbox + 1, "task") + " to sort");
     setNewText("");
     setNewDate("");
     setNewRepeat("");
+    setNewRemind("");
     setNewNotes("");
     setNewSteps([]);
     setNewNotesOpen(false);
@@ -471,7 +572,7 @@ export default function App() {
   function chooseFilter(value) {
     setFilter(value);
     // On a phone, the open menu covers the tasks: close it so you can see what you picked
-    if (isPhone()) {
+    if (phone) {
       setMenuOpen(false);
     }
   }
@@ -570,17 +671,47 @@ export default function App() {
     }
   };
 
+  function chooseView(value) {
+    setView(value);
+    remember("view", value);
+  }
+
+  // What the board and the calendar are allowed to do
+  const viewActions = {
+    say: dogSays,
+    update: updateTask,
+    move: moveTask,
+    toggle: toggleDone,
+    open: setOpenTaskId,
+    complete: coachActions.completeTask,
+    toggleWithJoy: handleToggle,
+    remove: handleDelete,
+    // A task typed into a board column: the column's settings, then what was typed
+    add: function (text, fields) {
+      addTask(text, fields.dueDate || "", fields.priority || "medium", fields.status || "inbox", fields.repeat || "", "", [], fields.remindAt || "");
+      if (fields.remindAt) {
+        askToNotify();
+      }
+    }
+  };
+  const openTask = tasks.find((task) => task.id === openTaskId);
+
   // Today's date above the title, e.g. "Sunday 1 November"
   const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
-  // A function that draws one task card (used for both sections)
+  // A function that draws one task card (used for both sections and History)
   function drawTask(task) {
     return (
       <TaskItem
         key={task.id}
         task={task}
         onToggle={(event) => handleToggle(task, event)}
-        onUpdate={(changes) => updateTask(task.id, changes)}
+        onUpdate={(changes) => {
+          updateTask(task.id, changes);
+          if (changes.remindAt) {
+            askToNotify();
+          }
+        }}
         onDelete={() => handleDelete(task.id)}
         onMove={(listKey) => handleMove(task, listKey)}
         onStar={() => handleStar(task)}
@@ -605,8 +736,11 @@ export default function App() {
           counts={counts}
           projects={projects}
           contexts={contexts}
+          streak={rewardsOn ? streak.current : 0}
+          level={rewardsOn ? level : null}
           onSortInbox={() => setCoach({ mode: "sort", key: Date.now() })}
           onReview={() => setCoach({ mode: "review", key: Date.now() })}
+          onTemplates={() => setTemplatesOpen(true)}
           onDownload={downloadTasks}
           onRestoreFile={restoreFile}
         />
@@ -621,7 +755,8 @@ export default function App() {
             </div>
           </div>
 
-          <main className="app">
+          {/* The board and calendar get a wider page than the list */}
+          <main className={isListView || isHistory ? "app" : "app wide"}>
             <div className="header">
               <div className="header-text">
                 <p className="eyebrow">{today}</p>
@@ -639,7 +774,7 @@ export default function App() {
                   title="Pet the dog"
                   onClick={() => dogSays(dogTip(todo, done))}
                 >
-                  <Dog />
+                  <Dog level={rewardsOn ? level : 0} />
                 </button>
               </div>
 
@@ -648,106 +783,136 @@ export default function App() {
               </button>
             </div>
 
-            <div className="input-row">
-              <div className="input-wrap">
-                <input
-                  type="text"
-                  id="task-input"
-                  placeholder="What’s on your mind?"
-                  aria-label="New task"
-                  value={newText}
-                  onChange={(event) => setNewText(event.target.value)}
-                  onKeyDown={handleKeyDown}
-                />
-                {/* The grey rest of a date word, lying exactly over the box */}
-                {suggestion && (
-                  <span className="ghost" aria-hidden="true">
-                    <span className="ghost-typed">{newText}</span>{suggestion}
-                  </span>
-                )}
-                {/* Two small icons inside the box, at its right end. Each fills butter yellow
-                    when something is waiting to go into the task.
-                    The paw (steps) only appears once you've started typing a task */}
-                {(newText !== "" || newSteps.length > 0) && (
-                  <button
-                    className={newSteps.length ? "icon-button paw-button on" : "icon-button paw-button"}
-                    title={newStepsOpen ? "Hide steps" : "Add steps"}
-                    aria-label={newStepsOpen ? "Hide steps" : "Add steps"}
-                    aria-expanded={newStepsOpen}
-                    onClick={() => setNewStepsOpen(!newStepsOpen)}
-                  >
-                    <Icon name="paw" />
-                  </button>
-                )}
-                <button
-                  className={newNotes.trim() ? "icon-button notes-button new-notes-button on" : "icon-button notes-button new-notes-button"}
-                  title={newNotesOpen ? "Hide notes" : "Add notes"}
-                  aria-label={newNotesOpen ? "Hide notes" : "Add notes"}
-                  aria-expanded={newNotesOpen}
-                  onClick={() => setNewNotesOpen(!newNotesOpen)}
-                >
-                  <Icon name="notes" />
-                </button>
-              </div>
-              {/* Notes and steps for the new task, right under the task box and exactly as wide
-                  (the row is a grid: see .input-row). What's written here goes into the task on Add */}
-              {(newNotesOpen || newStepsOpen) && (
-                <div className="new-details">
-                  {newNotesOpen && (
-                    <textarea
-                      className="notes-box new-notes-box"
-                      aria-label="Notes for the new task"
-                      placeholder="Add notes or links"
-                      rows="3"
-                      value={newNotes}
-                      onChange={(event) => setNewNotes(event.target.value)}
+            {/* The task box, its helper and the details: only in the list (the board and the
+                calendar have their own "+ Add a task" boxes) */}
+            {(isListView || isHistory) && (
+              <>
+                <div className="input-row">
+                  <div className="input-wrap">
+                    <input
+                      type="text"
+                      id="task-input"
+                      placeholder="What’s on your mind?"
+                      aria-label="New task"
+                      value={newText}
+                      onChange={(event) => setNewText(event.target.value)}
+                      onKeyDown={handleKeyDown}
                     />
+                    {/* The grey rest of a date word, lying exactly over the box */}
+                    {suggestion && (
+                      <span className="ghost" aria-hidden="true">
+                        <span className="ghost-typed">{newText}</span>{suggestion}
+                      </span>
+                    )}
+                    {/* Two small icons inside the box, at its right end. Each fills butter yellow
+                        when something is waiting to go into the task.
+                        The paw (steps) only appears once you've started typing a task */}
+                    {(newText !== "" || newSteps.length > 0) && (
+                      <button
+                        className={newSteps.length ? "icon-button paw-button on" : "icon-button paw-button"}
+                        title={newStepsOpen ? "Hide steps" : "Add steps"}
+                        aria-label={newStepsOpen ? "Hide steps" : "Add steps"}
+                        aria-expanded={newStepsOpen}
+                        onClick={() => setNewStepsOpen(!newStepsOpen)}
+                      >
+                        <Icon name="paw" />
+                      </button>
+                    )}
+                    <button
+                      className={newNotes.trim() ? "icon-button notes-button new-notes-button on" : "icon-button notes-button new-notes-button"}
+                      title={newNotesOpen ? "Hide notes" : "Add notes"}
+                      aria-label={newNotesOpen ? "Hide notes" : "Add notes"}
+                      aria-expanded={newNotesOpen}
+                      onClick={() => setNewNotesOpen(!newNotesOpen)}
+                    >
+                      <Icon name="notes" />
+                    </button>
+                  </div>
+                  {/* Notes and steps for the new task, right under the task box and exactly as wide
+                      (the row is a grid: see .input-row). What's written here goes into the task on Add */}
+                  {(newNotesOpen || newStepsOpen) && (
+                    <div className="new-details">
+                      {newNotesOpen && (
+                        <NotesEditor className="notes-box new-notes-box" label="Notes for the new task" value={newNotes} onChange={setNewNotes} />
+                      )}
+                      {newStepsOpen && <StepList steps={newSteps} onChange={setNewSteps} />}
+                    </div>
                   )}
-                  {newStepsOpen && <StepList steps={newSteps} onChange={setNewSteps} />}
+                  <button id="add-button" onClick={handleAdd}>Add</button>
                 </div>
-              )}
-              <button id="add-button" onClick={handleAdd}>Add</button>
-            </div>
-            {/* THE HELPER under the Add button: the Lhasa Apso and its speech bubble.
-                While you type it says what it understood; otherwise it teaches a trick */}
-            <div className="helper">
-              <p className="helper-bubble">
-                {suggestion && (
-                  // onMouseDown + preventDefault keeps the box focused, so a phone's keyboard stays open
-                  <button className="suggest-button" onMouseDown={(event) => event.preventDefault()} onClick={completeWord}>
-                    Tab: {suggestedWord}
+                {/* THE HELPER under the Add button: the Lhasa Apso and its speech bubble.
+                    While you type it says what it understood; otherwise it teaches a trick */}
+                <div className="helper">
+                  <p className="helper-bubble">
+                    {suggestion && (
+                      // onMouseDown + preventDefault keeps the box focused, so a phone's keyboard stays open
+                      <button className="suggest-button" onMouseDown={(event) => event.preventDefault()} onClick={completeWord}>
+                        Tab: {suggestedWord}
+                      </button>
+                    )}
+                    {found.length > 0 && found.join(" · ")}
+                    {!suggestion && found.length === 0 && (
+                      <>
+                        {/* TaskText turns #garden and @home into colored chips, like on the task cards */}
+                        <TaskText text={TRICKS[trick]} />
+                        <span className="trick-count">{trick + 1}/{TRICKS.length}</span>
+                      </>
+                    )}
+                  </p>
+                  <button className="lhasa-button" title="Tap for another trick" aria-label="Show the next trick" onClick={() => setTrick((trick + 1) % TRICKS.length)}>
+                    <Lhasa />
                   </button>
-                )}
-                {found.length > 0 && found.join(" · ")}
-                {!suggestion && found.length === 0 && (
-                  <>
-                    {/* TaskText turns #garden and @home into colored chips, like on the task cards */}
-                    <TaskText text={TRICKS[trick]} />
-                    <span className="trick-count">{trick + 1}/{TRICKS.length}</span>
-                  </>
-                )}
-              </p>
-              <button className="lhasa-button" title="Tap for another trick" aria-label="Show the next trick" onClick={() => setTrick((trick + 1) % TRICKS.length)}>
-                <Lhasa />
-              </button>
-            </div>
+                </div>
 
-            <div className="details-row">
-              <input type="date" id="date-input" aria-label="Due date" value={newDate} onChange={(event) => setNewDate(event.target.value)} />
-              <select id="priority-input" aria-label="Priority" value={newPriority} onChange={(event) => setNewPriority(event.target.value)}>
-                <option value="high">High priority</option>
-                <option value="medium">Medium priority</option>
-                <option value="low">Low priority</option>
-              </select>
-              <select id="repeat-input" aria-label="Repeat" value={newRepeat} onChange={(event) => setNewRepeat(event.target.value)}>
-                <option value="">Doesn’t repeat</option>
-                {Object.keys(REPEAT_NAMES).map((repeat) => (
-                  <option key={repeat} value={repeat}>Repeats {repeat}</option>
+                <div className="details-row">
+                  <input type="date" id="date-input" aria-label="Due date" value={newDate} onChange={(event) => setNewDate(event.target.value)} />
+                  <input type="time" id="remind-input" aria-label="Remind at" title="Remind at" value={newRemind} onChange={(event) => setNewRemind(event.target.value)} />
+                  <select id="priority-input" aria-label="Priority" value={newPriority} onChange={(event) => setNewPriority(event.target.value)}>
+                    <option value="high">High priority</option>
+                    <option value="medium">Medium priority</option>
+                    <option value="low">Low priority</option>
+                  </select>
+                  <select id="repeat-input" aria-label="Repeat" value={newRepeat} onChange={(event) => setNewRepeat(event.target.value)}>
+                    <option value="">Doesn’t repeat</option>
+                    {Object.keys(REPEAT_NAMES).map((repeat) => (
+                      <option key={repeat} value={repeat}>Repeats {repeat}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* List · Board · Calendar (not on the History page) */}
+            {!isHistory && (
+              <div className="view-tabs" role="group" aria-label="View">
+                {[
+                  { value: "list", icon: "list", label: "List" },
+                  { value: "board", icon: "layout-board", label: "Board" },
+                  { value: "calendar", icon: "calendar", label: "Calendar" }
+                ].map((choice) => (
+                  <button key={choice.value} type="button" className={view === choice.value ? "chosen" : ""} aria-pressed={view === choice.value} onClick={() => chooseView(choice.value)}>
+                    <Icon name={choice.icon} /> {choice.label}
+                  </button>
                 ))}
-              </select>
-            </div>
+              </div>
+            )}
+
+            {!isHistory && view === "board" && <Board tasks={tasks.filter(isVisible)} actions={viewActions} />}
+            {!isHistory && view === "calendar" && <Calendar tasks={tasks.filter(isVisible)} actions={viewActions} />}
 
             {showNoResults && <p className="no-results">{emptyMessage(search, filter)}</p>}
+
+            {isHistory && (
+              <History
+                done={done}
+                shown={visibleDone}
+                drawTask={drawTask}
+                streak={streak}
+                level={level}
+                rewardsOn={rewardsOn}
+                onRewards={setRewardsOn}
+              />
+            )}
 
             {showTodo && (
               <section className="task-section">
@@ -773,6 +938,38 @@ export default function App() {
       {/* The dog coach, only on the page while it's open */}
       {coach && <Coach key={coach.key} mode={coach.mode} tasks={tasks} actions={coachActions} onClose={() => setCoach(null)} />}
 
+      {/* Templates: a pop-up too, only on the page while it's open.
+          Its tasks land in the Inbox with medium priority, like a task typed in the box */}
+      {templatesOpen && (
+        <Templates
+          tasks={tasks}
+          onAdd={(text, dueDate, repeat, steps) => addTask(text, dueDate, "medium", "inbox", repeat, "", steps)}
+          onAdded={(count) => dogSays("Added " + plural(count, "task") + " to Inbox")}
+          onClose={() => setTemplatesOpen(false)}
+        />
+      )}
+
+      {/* The task pop-up, for a card opened on the board or the calendar */}
+      {openTask && (
+        <TaskDetails
+          key={openTask.id}
+          task={openTask}
+          onUpdate={(changes) => {
+            updateTask(openTask.id, changes);
+            if (changes.remindAt) {
+              askToNotify();
+            }
+          }}
+          onToggle={(event) => handleToggle(openTask, event)}
+          onDelete={() => {
+            handleDelete(openTask.id);
+            setOpenTaskId(null);
+          }}
+          onAllSteps={(count) => dogSays((count === 1 ? "The step is done" : "All " + count + " steps done") + ". Tick the task when you’re ready")}
+          onClose={() => setOpenTaskId(null)}
+        />
+      )}
+
       {/* Running dogs and paw prints */}
       {runners.map((id) => (
         <div key={id} className="dog-runner"><Dog /></div>
@@ -782,6 +979,10 @@ export default function App() {
           <Icon name="paw" />
         </span>
       ))}
+
+      {/* The reminder bar, until you choose Done, Snooze or close it.
+          key: a fresh bar for each reminder */}
+      {reminder && <ReminderBar key={reminder.task.id + reminder.task.remindAt} reminder={reminder} onDone={reminderDone} onSnooze={reminderSnooze} onClose={() => setReminder(null)} />}
 
       {/* The Undo bar, for 10 seconds after a delete */}
       {undo && <UndoBar key={undo.key} text={undo.task.text} onUndo={handleUndo} />}

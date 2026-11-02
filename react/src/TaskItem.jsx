@@ -3,7 +3,8 @@
 // and React builds it. The task's data comes in as "props" (the attributes on <TaskItem ... />)
 import { useState } from "react";
 import Icon from "./Icon.jsx";
-import { LIST_NAMES, REPEAT_NAMES, TAG_PATTERN, findLinks, tagColor, todayString } from "./tasks.js";
+import NotesEditor from "./NotesEditor.jsx";
+import { LIST_NAMES, REPEAT_NAMES, TAG_PATTERN, findLinks, notesText, tagColor, toDate, todayString } from "./tasks.js";
 
 // The task text, with @ and # words turned into little chips
 // (...rest = any other attributes, like role or onKeyDown, passed straight to the span)
@@ -32,7 +33,7 @@ export function DueDate({ date }) {
   if (!date) {
     return <small className="due-date"></small>;   // no date: an empty label (the CSS hides it)
   }
-  const niceDate = new Date(date + "T00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const niceDate = toDate(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   const isOverdue = date < todayString();
   return <small className={isOverdue ? "due-date overdue" : "due-date"}>Due {niceDate}</small>;
 }
@@ -85,15 +86,20 @@ export function StepList({ steps, onChange, onAllDone }) {
           </button>
         </div>
       ))}
-      <input
-        type="text"
-        className="step-add"
-        placeholder="Add a step"
-        aria-label="Add a step"
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={addOnEnter}
-      />
+      {/* "Add a step" looks like a step waiting to be written: a faded empty square
+          (where its tick box will be), inside a dashed box */}
+      <label className="step-add-row">
+        <span className="step-add-box" aria-hidden="true"></span>
+        <input
+          type="text"
+          className="step-add"
+          placeholder="+ Add a step"
+          aria-label="Add a step"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={addOnEnter}
+        />
+      </label>
     </div>
   );
 }
@@ -104,6 +110,7 @@ export default function TaskItem({ task, onToggle, onUpdate, onDelete, onMove, o
   const [draftText, setDraftText] = useState("");
   const [draftDate, setDraftDate] = useState("");
   const [draftRepeat, setDraftRepeat] = useState("");
+  const [draftRemind, setDraftRemind] = useState("");
   const [notesOpen, setNotesOpen] = useState(false);   // is the notes panel open
 
   // The Edit button has two modes: "Edit" starts editing, "Save" saves
@@ -112,6 +119,7 @@ export default function TaskItem({ task, onToggle, onUpdate, onDelete, onMove, o
       setDraftText(task.text);
       setDraftDate(task.dueDate);
       setDraftRepeat(task.repeat);
+      setDraftRemind(task.remindAt);
       setIsEditing(true);
       return;
     }
@@ -119,7 +127,9 @@ export default function TaskItem({ task, onToggle, onUpdate, onDelete, onMove, o
     if (newText === "") {
       return;   // don't allow an empty task
     }
-    onUpdate({ text: newText, dueDate: draftDate, repeat: draftRepeat });
+    // A reminder needs a day: with no due date, it's today
+    const dueDate = draftRemind && !draftDate ? todayString() : draftDate;
+    onUpdate({ text: newText, dueDate, repeat: draftRepeat, remindAt: draftRemind });
     setIsEditing(false);
   }
 
@@ -185,6 +195,17 @@ export default function TaskItem({ task, onToggle, onUpdate, onDelete, onMove, o
         )
       )}
 
+      {/* Reminder: a small bell tag like "🔔 15:00", or a time picker while editing */}
+      {isEditing ? (
+        <input type="time" className="edit-remind" aria-label="Remind at" value={draftRemind} onChange={(event) => setDraftRemind(event.target.value)} />
+      ) : (
+        task.remindAt && !task.done && (
+          <small className="repeat-tag remind-tag" title={"Reminder at " + task.remindAt}>
+            <Icon name="bell" />{task.remindAt}
+          </small>
+        )
+      )}
+
       <button className={task.focus ? "icon-button focus-button on" : "icon-button focus-button"} title={starLabel} aria-label={starLabel} onClick={onStar}>
         <Icon name="star" />
       </button>
@@ -218,15 +239,8 @@ export default function TaskItem({ task, onToggle, onUpdate, onDelete, onMove, o
           then the steps */}
       {notesOpen && (
         <div className="notes-panel">
-          <textarea
-            className="notes-box"
-            aria-label="Notes"
-            placeholder="Add notes or links"
-            rows="3"
-            value={task.notes}
-            onChange={(event) => onUpdate({ notes: event.target.value })}
-          />
-          {findLinks(task.notes).map((link, index) => (
+          <NotesEditor className="notes-box" label="Notes" value={task.notes} onChange={(notes) => onUpdate({ notes })} />
+          {findLinks(notesText(task.notes)).map((link, index) => (
             // target="_blank" opens a new tab; rel="noopener noreferrer" stops that tab from reaching back into ours
             <a key={index} className="note-link" href={link} target="_blank" rel="noopener noreferrer">
               {link.replace(/^https?:\/\//, "")}
