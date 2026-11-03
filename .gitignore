@@ -1,6 +1,18 @@
 # Claude Code settings and third-party skills (kept on my computer only)
 .claude/
 
+# Secrets: never in the repo
+.env
+*.env
+.env.*
+*.pem
+*.key
+id_rsa*
+
+# Installed packages and build leftovers
+node_modules/
+dist/
+
 # Windows and Mac system files
 Thumbs.db
 desktop.ini
